@@ -65,9 +65,9 @@ mountDeviceOrFallback() {
         then
             if batocera-mount "${TDEVICE}" 1 "${DEVICE}" "${BATOCERAFULLFS}"
             then
-                if mkdir -p "${BATOCERAFULLFS}/batocera"
+                if mkdir -p "${BATOCERAFULLFS}"
                 then
-                    if mount --bind "${BATOCERAFULLFS}/batocera" "/userdata" -o "noatime"
+                    if mount --bind "${BATOCERAFULLFS}" "/userdata" -o "noatime"
                     then
                         FALLBACK=0
                     fi

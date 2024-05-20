@@ -1,0 +1,11 @@
+--- a/src/core/linux/SDL_evdev_kbd.c	2024-05-18 18:10:24.744645895 +0000
++++ b/src/core/linux/SDL_evdev_kbd.c	2024-05-19 02:10:37.933033611 +0000
+@@ -343,7 +343,7 @@
+         /* Make sure to restore keyboard if application fails to call
+          * SDL_Quit before exit or fatal signal is raised.
+          */
+-        if (!SDL_GetHintBoolean(SDL_HINT_NO_SIGNAL_HANDLERS, SDL_FALSE)) {
++        if (!SDL_GetHintBoolean(SDL_HINT_NO_SIGNAL_HANDLERS, SDL_TRUE)) {
+             kbd_register_emerg_cleanup(kbd);
+         }
+     }

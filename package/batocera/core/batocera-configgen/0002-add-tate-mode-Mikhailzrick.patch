@@ -1,3 +1,13 @@
+--- a/configgen/generators/libretro/libretroConfig.py	2024-05-19 18:51:26.239056252 +0000
++++ b/configgen/generators/libretro/libretroConfig.py	2024-05-19 18:51:35.079030774 +0000
+@@ -15,6 +15,7 @@
+ import utils.videoMode as videoMode
+ import controllersConfig
+ import xml.etree.ElementTree as ET
++from pathlib import Path
+ 
+ eslog = get_logger(__name__)
+ sys.path.append(
 --- a/configgen/generators/libretro/libretroConfig.py	2024-04-12 02:03:40.836960712 +0000
 +++ b/configgen/generators/libretro/libretroConfig.py	2024-05-09 19:08:23.036133015 +0000
 @@ -562,6 +563,58 @@
