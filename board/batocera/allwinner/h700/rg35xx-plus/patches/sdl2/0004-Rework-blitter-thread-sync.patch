@@ -134,7 +134,7 @@ index 23600e6d6..7e308759c 100644
      int rotation;
      int next;
 -    int initted;
-+    int was_initialized
++    int was_initialized;
  
      void *user_data;
  
