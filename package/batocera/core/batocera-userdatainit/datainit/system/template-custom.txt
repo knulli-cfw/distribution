@@ -15,7 +15,7 @@ then
 fi
 
 # Set the timezone.
-TZ=Europe/Paris
+TZ=Asia/Seoul
 hwclock --systz --localtime
 # Write to the log file, result should be a text file with three blank lines.
 echo "$1" > $logfile
