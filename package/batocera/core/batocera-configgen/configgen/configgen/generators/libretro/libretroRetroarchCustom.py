@@ -81,6 +81,10 @@ def generateRetroarchCustom():
     
     # Set fps counter interval (in frames)
     retroarchSettings.save('fps_update_interval',               '"30"')
+
+    # Custom
+    retroarchSettings.save('ozone_collapse_sidebar',            '"true"')
+    retroarchSettings.save('user_language',                     '"10"')
     
 
     retroarchSettings.write()
