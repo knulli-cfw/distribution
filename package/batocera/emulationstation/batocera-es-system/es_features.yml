@@ -1623,8 +1623,8 @@ libretro:
                 prompt: HANDHELD TATE MODE
                 description: Rotates the display and remaps inputs for device to be used sideways.
                 choices:
-                    "Off":    disabled
-                    "On":     enabled
+                    "Off":    "False"
+                    "On":     "True"
             fbneo-lightgun-hide-crosshair:
                 group: LIGHT GUN
                 prompt:      SHOW LIGHT GUN CROSSHAIRS
@@ -2561,8 +2561,8 @@ libretro:
                 prompt: HANDHELD TATE MODE
                 description: Rotates the display and remaps inputs for device to be used sideways.
                 choices:
-                    "Off":    disabled
-                    "On":     enabled
+                    "Off":    "False"
+                    "On":     "True"
             hiscoreplugin:
                 group: ADVANCED OPTIONS
                 prompt:      HIGH SCORE PLUGIN
