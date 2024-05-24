@@ -14,6 +14,7 @@ from PIL import Image, ImageOps
 import utils.bezels as bezelsUtil
 import utils.videoMode as videoMode
 import controllersConfig
+from pathlib import Path
 
 eslog = get_logger(__name__)
 sys.path.append(
@@ -562,6 +563,71 @@ def createLibretroConfig(generator, system, controllers, metadata, guns, wheels,
             controller, pad = controller_list[i - 1]
             if (pad.guid in valid_n64_controller_guids and pad.configName in valid_n64_controller_names) or (system.isOptSet(f'{option}-controller{i}') and system.config[f'{option}-controller{i}'] != 'retropad'):
                 update_n64_controller_config(i)
+    
+    ## TATE mode remap for handhelds
+    if system.config['core'] in ['fbneo', 'mame']:                     
+        path = Path(rom)
+        folder_name = path.parent.name   
+            
+        handhelds = {
+            ('19000000010000000100000000010000', 'Deeplay-keys', 'rg35xx-plus'): {  # rg35xx/h(only for H model since it has joysticks)
+                'rotation': 'left', 
+                'remap': {
+                    'stk_r_x+': '18', 'stk_r_x-': '19', 'stk_r_y+': '17', 'stk_r_y-': '16',
+                    'btn_a': '0', 'btn_b': '1', 'btn_x': '8', 'btn_y': '-1',
+                }
+            },
+            ('19000000010000000100000000010000', 'Deeplay-keys', 'rg28xx'): {  # rg28xx
+                'rotation': 'right', 
+                'remap': {
+                    'btn_down': '7', 'btn_left': '5', 'btn_right': '4', 'btn_up': '6',
+                    'btn_start': '0', 'btn_select': '8', 'btn_l2': '1', 'btn_r': '2',
+                    'btn_r2': '3', 'btn_a': '-1', 'btn_b': '-1', 'btn_x': '-1', 'btn_y': '-1',
+                }
+            },
+            ('030000005e0400008e02000014010000', 'TRIMUI Player1', 'trimui-smart-pro'): {  # trimui-smartpro
+                'rotation': 'left', 
+                'remap': {
+                    'stk_r_x+': '18', 'stk_r_x-': '19', 'stk_r_y+': '17', 'stk_r_y-': '16',
+                    'btn_a': '0', 'btn_b': '1', 'btn_x': '8', 'btn_y': '-1',
+                }
+            },
+        }
+        
+        def get_board_info():
+            result = subprocess.run(['batocera-info'], stdout=subprocess.PIPE, text=True)
+            output = result.stdout
+            for line in output.splitlines():
+                if line.startswith("Board:"):
+                    return line.split(":")[1].strip()
+            return None
+        
+        def update_handheld_config(guid, name, board):
+            if (guid, name, board) in handhelds:
+                settings = handhelds[(guid, name, board)]
+                # set display rotation
+                if settings['rotation'] == 'left':
+                    if (system.config['core'] == 'fbneo'):
+                        coreSettings.save('fbneo-vertical-mode', '"' + 'TATE alternate' + '"')
+                    elif (system.config['core'] == 'mame'):
+                        coreSettings.save('mame_rotation_mode', '"' + 'tate-rol' + '"')
+                elif settings['rotation'] == 'right':
+                    if (system.config['core'] == 'fbneo'):
+                        coreSettings.save('fbneo-vertical-mode', '"' + 'TATE' + '"')
+                    elif (system.config['core'] == 'mame'):
+                        coreSettings.save('mame_rotation_mode', '"' + 'tate-ror' + '"')
+                # remap inputs
+                for btn, value in settings['remap'].items():
+                    retroarchConfig[f'input_player1_{btn}'] = value    
+        
+        board_name = get_board_info()    
+        controller, pad = sorted(controllers.items())[0] 
+        if (system.isOptSet(f"{systemCore}-hhtate") and system.config[f"{systemCore}-hhtate"] == "True" or folder_name == "tate"):
+            update_handheld_config(pad.guid, pad.configName, board_name)
+        elif (system.config['core'] == 'fbneo'):
+            coreSettings.save('fbneo-vertical-mode', '"' + 'disabled' + '"')
+        elif (system.config['core'] == 'mame'):
+            coreSettings.save('mame_rotation_mode', '"' + 'libretro' + '"')               
 
     ## PORTS
     ## Quake
