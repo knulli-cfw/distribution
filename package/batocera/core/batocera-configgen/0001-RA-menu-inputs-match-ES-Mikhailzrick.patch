@@ -1,10 +1,11 @@
 --- a/configgen/generators/libretro/libretroConfig.py
 +++ b/configgen/generators/libretro/libretroConfig.py
-@@ -14,11 +14,22 @@
+@@ -14,12 +14,23 @@ from PIL import Image, ImageOps
  import utils.bezels as bezelsUtil
  import utils.videoMode as videoMode
  import controllersConfig
 +import xml.etree.ElementTree as ET
+ from pathlib import Path
  
  eslog = get_logger(__name__)
  sys.path.append(
@@ -23,7 +24,7 @@
  # return true if the option is considered defined
  def defined(key, dict):
      return key in dict and isinstance(dict[key], str) and len(dict[key]) > 0
-@@ -110,11 +121,14 @@ def createLibretroConfig(generator, system, controllers, metadata, guns, wheels,
+@@ -111,11 +122,14 @@ def createLibretroConfig(generator, syst
      systemConfig = system.config
      renderConfig = system.renderconfig
      systemCore = system.config['core']
