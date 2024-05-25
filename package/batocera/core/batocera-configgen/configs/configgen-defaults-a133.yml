@@ -6,7 +6,7 @@ default:
     # menu retroarch
     retroarch.menu_driver: ozone
     retroarch.audio_driver: alsathread
-    retroarch.menu_scale_factor: 1.200000
+    retroarch.menu_scale_factor: 2.100000
 
 nds:
   emulator: libretro
