@@ -4,6 +4,9 @@ default:
     video_threaded: true
     retroarch.video_rotation: 0 # for people upgrading
     retroarch.audio_driver: alsathread
+    # menu retroarch
+    retroarch.menu_driver: "glui"
+    retroarch.menu_scale_factor: "2.450000"
 
 nds:
   emulator: libretro
