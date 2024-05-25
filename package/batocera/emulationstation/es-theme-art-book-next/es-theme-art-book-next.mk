@@ -4,7 +4,7 @@
 #
 ################################################################################
 # Version.: Commits on May 17, 2024
-ES_THEME_ART_BOOK_NEXT_VERSION = 8a14b1b45fdc41c808ac0c24cf90b0cb0f087d62
+ES_THEME_ART_BOOK_NEXT_VERSION = aa26b24acf9b8b32a35de308d6ab31acf1ad2382
 ES_THEME_ART_BOOK_NEXT_SITE = $(call github,UzuCore,es-theme-art-book-dc,$(ES_THEME_ART_BOOK_NEXT_VERSION))
 
 define ES_THEME_ART_BOOK_NEXT_INSTALL_TARGET_CMDS
