@@ -7,6 +7,7 @@ default:
     # menu retroarch
     retroarch.menu_driver: "glui"
     retroarch.menu_scale_factor: "2.450000"
+    retroarch.video_font_path: "/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf"
 
 nds:
   emulator: libretro
