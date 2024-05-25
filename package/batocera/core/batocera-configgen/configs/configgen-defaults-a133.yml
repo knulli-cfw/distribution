@@ -5,7 +5,7 @@ default:
     retroarch.video_rotation: 0 # for people upgrading
     # menu retroarch
     retroarch.menu_driver: ozone
-    retroarch.menu_scale_factor: "0.35000"
+    retroarch.menu_scale_factor: 0.350000
     retroarch.audio_driver: alsathread
 
 nds:
