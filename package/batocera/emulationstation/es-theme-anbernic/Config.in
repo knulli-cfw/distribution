@@ -1,4 +1,4 @@
-config BR2_PACKAGE_ES_THEME_ANBERNIC
-	bool "EmulationStation theme Anbernic"
+config BR2_PACKAGE_ES_THEME_ANBERNIC_DC
+	bool "EmulationStation theme Anbernic DC"
 	help
 	  https://github.com/UzuCore/es-theme-anbernic-dc
