@@ -1,6 +1,6 @@
---- a/configgen/generators/libretro/libretroConfig.py
-+++ b/configgen/generators/libretro/libretroConfig.py
-@@ -14,12 +14,23 @@ from PIL import Image, ImageOps
+--- a/configgen/generators/libretro/libretroConfig.py	2024-05-29 02:34:53.563715544 +0000
++++ b/configgen/generators/libretro/libretroConfig.py	2024-05-29 02:36:09.387623908 +0000
+@@ -14,12 +14,23 @@
  import utils.bezels as bezelsUtil
  import utils.videoMode as videoMode
  import controllersConfig
