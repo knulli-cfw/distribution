@@ -17,7 +17,7 @@ def generateRetroarchCustom():
         retroarchSettings = UnixSettings(batoceraFiles.retroarchCustom, separator=' ')
 
     # Use Interface
-    retroarchSettings.save('menu_driver',                       '"ozone"')
+    retroarchSettings.save('menu_driver',                       '"glui"')
     retroarchSettings.save('content_show_favorites',            '"false"')
     retroarchSettings.save('content_show_images',               '"false"')
     retroarchSettings.save('content_show_music',                '"false"')
