@@ -12,7 +12,7 @@ define RETROARCH_ASSETS_BUILD_CMDS
 	cp $(BR2_EXTERNAL_BATOCERA_PATH)/assets/NanumSquareNeo-bRg.ttf $(@D)/glui/font.ttf
 	cp $(BR2_EXTERNAL_BATOCERA_PATH)/assets/NanumSquareNeo-bRg.ttf $(@D)/ozone/regular.ttf
 	cp $(BR2_EXTERNAL_BATOCERA_PATH)/assets/NanumSquareNeo-cBd.ttf $(@D)/ozone/bold.ttf
-	find $(@D)/xmb -name "font.ttf" -exec cp $(BR2_EXTERNAL_BATOCERA_PATH)/knulli/assets/NanumSquareNeo-bRg.ttf "{}" \;
+	find $(@D)/xmb/ -name "font.ttf" -exec cp $(BR2_EXTERNAL_BATOCERA_PATH)/knulli/assets/NanumSquareNeo-bRg.ttf "{}" \;
 endef
 
 define RETROARCH_ASSETS_INSTALL_TARGET_CMDS
