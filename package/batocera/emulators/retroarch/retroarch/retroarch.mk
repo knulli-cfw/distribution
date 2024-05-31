@@ -148,6 +148,10 @@ ifeq ($(BR2_PACKAGE_VULKAN_LOADER)$(BR2_PACKAGE_VULKAN_HEADERS),yy)
     RETROARCH_DEPENDENCIES += vulkan-headers vulkan-loader slang-shaders
 endif
 
+#ifeq ($(BR2_PACKAGE_HAS_LIBMALI),y)
+#	RETROARCH_CONF_OPTS += --enable-mali_fbdev
+#endif
+
 ifeq ($(BR2_riscv),y)
 	RETROARCH_TARGET_CFLAGS += -DMESA_EGL_NO_X11_HEADERS=1
 endif

@@ -94,11 +94,10 @@ doList() {
 		  # 480000 720000 1032000 1104000 1200000 1296000 1416000 1512000 
                 echo "powersave POWERSAVE (480 MHz)"
                 echo "low LOW (720 MHz)"
-                echo "none NONE (1200 MHz)"
-                echo "medium MEDIUM (1032 MHz)"
+                echo "medium MEDIUM (1200 MHz)"
                 echo "high HIGH (1296 MHz)"
                 echo "turbo TURBO (1416 MHz)"
-                echo "extreme EXTREME (1512 MHz)"
+                echo "none NONE (1512 MHz)"
           ;;
           "a133")
 		# 408000 600000 816000 1008000 1200000 1416000 1608000 1800000 2000000  

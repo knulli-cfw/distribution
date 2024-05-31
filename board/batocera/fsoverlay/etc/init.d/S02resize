@@ -128,16 +128,24 @@ else
 	case "${FORMAT_INTERNAL_TYPE}" in
 	    "btrfs")
 		textoutput 1 10 "mkfs.btrfs -L SHARE -f ${PART}" # what to do in case of error ? nothing.
+		echo -e 't\n4\n8300\nw\nY\n' | gdisk ${DISK}
 		;;
 	    "ext4")
 		textoutput 1 10 "mkfs.ext4 -L SHARE -q -F -F ${PART}" # what to do in case of error ? nothing.
+		echo -e 't\n4\n8300\nw\nY\n' | gdisk ${DISK}
+
 		;;
 	    "exfat")
 		textoutput 1 10 "mkfs.exfat -n SHARE ${PART}" # what to do in case of error ? nothing.
+		echo -e 't\n4\n0700\nw\nY\n' | gdisk ${DISK}
 		;;
 	    *)
 		# do nothing
 	esac
+
+	# Allwinner H700
+	echo -e 'r\nb\nc\nY\nw\nY\n' | gdisk ${DISK}
+	partprobe ${DISK}
     fi
 fi
 

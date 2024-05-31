@@ -65,9 +65,10 @@ class DrasticGenerator(Generator):
 
         textList = [                             # 0,1,2,3 ...
         "enable_sound"                 + " = 1",
+        "show_frame_counter"           + " = 0",
         "compress_savestates"          + " = 1",
         "savestate_snapshot"           + " = 1",
-        "firmware.username"            + " = Batocera",
+        "firmware.username"            + " = Knulli",
         "firmware.language"            + " = " + str(getDrasticLangFromEnvironment()),
         "firmware.favorite_color"      + " = 11",
         "firmware.birthday_month"      + " = 11",
@@ -191,8 +192,8 @@ def configurePads(settings, system, drastic_conf):
     #"controls_b[CONTROL_INDEX_UI_DOWN]                     = 65535   \n", Let Drastic Generate for Pad
     #"controls_b[CONTROL_INDEX_UI_LEFT]                     = 65535   \n", Let Drastic Generate for Pad
     #"controls_b[CONTROL_INDEX_UI_RIGHT]                    = 65535   \n", Let Drastic Generate for Pad
-    #"controls_b[CONTROL_INDEX_UI_SELECT]                   = 65535   \n", Let Drastic Generate for Pad
-    #"controls_b[CONTROL_INDEX_UI_BACK]                     = 65535   \n", Let Drastic Generate for Pad
+    "controls_b[CONTROL_INDEX_UI_SELECT]                    = 1027    \n", 
+    "controls_b[CONTROL_INDEX_UI_BACK]                      = 1028    \n", 
     #"controls_b[CONTROL_INDEX_UI_EXIT]                     = 65535   \n", Let Drastic Generate for Pad
     "controls_b[CONTROL_INDEX_UI_PAGE_UP]                   = 65535   \n",
     "controls_b[CONTROL_INDEX_UI_PAGE_DOWN]                 = 65535   \n",

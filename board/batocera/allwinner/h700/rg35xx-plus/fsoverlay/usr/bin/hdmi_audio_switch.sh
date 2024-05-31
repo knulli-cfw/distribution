@@ -39,7 +39,7 @@ if [ "$state" == "HDMI=1" ]; then
 		batocera-es-swissknife --restart
 	fi
 
-	fbset -g 1280 720 1280 1440 32 # -t 13426 192 56 22 1 136 3
+	fbset -g 1280 720 1280 1440 32 -t 13426 192 56 22 1 136 3
 	echo "CONNECTED!"
 else
 #	batocera-audio set alsa_output.platform-soc_03000000_codec_mach.unknown

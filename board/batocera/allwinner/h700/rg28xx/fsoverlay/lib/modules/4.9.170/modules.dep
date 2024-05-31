@@ -1,7 +1,12 @@
 kernel/drivers/video/backlight/lcd.ko:
 kernel/drivers/video/backlight/backlight.ko:
 kernel/drivers/video/backlight/generic_bl.ko: kernel/drivers/video/backlight/backlight.ko
+kernel/drivers/net/wireless/realtek/rtlwifi/rtlwifi.ko:
+kernel/drivers/net/wireless/realtek/rtlwifi/rtl_usb.ko: kernel/drivers/net/wireless/realtek/rtlwifi/rtlwifi.ko
+kernel/drivers/net/wireless/realtek/rtlwifi/rtl8192c/rtl8192c-common.ko: kernel/drivers/net/wireless/realtek/rtlwifi/rtlwifi.ko
+kernel/drivers/net/wireless/realtek/rtlwifi/rtl8192cu/rtl8192cu.ko: kernel/drivers/net/wireless/realtek/rtlwifi/rtl_usb.ko kernel/drivers/net/wireless/realtek/rtlwifi/rtl8192c/rtl8192c-common.ko kernel/drivers/net/wireless/realtek/rtlwifi/rtlwifi.ko
 kernel/drivers/net/wireless/rtl8821cs/8821cs.ko:
+kernel/drivers/net/wireless/8188eu.ko:
 kernel/drivers/media/v4l2-core/videobuf2-vmalloc.ko:
 kernel/drivers/media/platform/sunxi-vin/modules/sensor/ov5640.ko:
 kernel/drivers/media/platform/sunxi-vin/modules/sensor/gc0310_mipi.ko:
