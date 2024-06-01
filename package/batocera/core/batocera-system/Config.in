@@ -482,7 +482,7 @@ config BR2_TARGET_BATOCERA_IMAGES_DEFINITIONS
 	default "allwinner/h5/tritium-h5 allwinner/h5/orangepi-pc2"					if BR2_PACKAGE_BATOCERA_TARGET_H5
 	default "allwinner/h6/orangepi-3-lts allwinner/h6/orangepi-3 allwinner/h6/orangepi-one-plus"	if BR2_PACKAGE_BATOCERA_TARGET_H6
 	default "allwinner/h616/orangepi-zero2 allwinner/h616/orangepi-zero3 allwinner/h616/x96-mate"	if BR2_PACKAGE_BATOCERA_TARGET_H616
-	default "allwinner/h700/rg35xx-plus"								if BR2_PACKAGE_BATOCERA_TARGET_H700
+	default "allwinner/h700/rg35xx-plus allwinner/h700/rg28xx"					if BR2_PACKAGE_BATOCERA_TARGET_H700
 	default "allwinner/a133/trimui-smart-pro"							if BR2_PACKAGE_BATOCERA_TARGET_A133
 	default "amlogic/s812"										if BR2_PACKAGE_BATOCERA_TARGET_S812
 	default "samsung/exynos5422/odroidxu4"								if BR2_PACKAGE_BATOCERA_TARGET_XU4
