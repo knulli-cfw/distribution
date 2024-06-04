@@ -22,12 +22,8 @@ ifneq ($(BR2_PACKAGE_BATOCERA_TARGET_X86_ANY),y)
 	endif
 endif
 
-ifeq ($(BR2_PACKAGE_HAS_LIBMALI),y)
-    LDFLAGS_VARS += LDFLAGS="-lmali"
-endif
-
 define LIBRETRO_OPENLARA_BUILD_CMDS
-	$(TARGET_CONFIGURE_OPTS) $(MAKE) CXX="$(TARGET_CXX)" CC="$(TARGET_CC)" $(LDFLAGS_VARS) \
+	$(TARGET_CONFIGURE_OPTS) $(MAKE) CXX="$(TARGET_CXX)" CC="$(TARGET_CC)" LDFLAGS="-lmali" \
 	    -C $(@D)/src/platform/libretro -f Makefile $(LIBRETRO_OPENLARA_EXTRA_ARGS) \
 		platform="$(LIBRETRO_OPENLARA_PLATFORM)"
 endef
