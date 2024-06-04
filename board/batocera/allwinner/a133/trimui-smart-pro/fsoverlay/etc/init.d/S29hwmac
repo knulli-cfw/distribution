@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Interface name
+INTERFACE="wlan0"
+
+# Function to extract the current MAC address
+get_current_mac() {
+    ifconfig $INTERFACE | grep -o -E 'ether ([0-9a-f]{2}:){5}[0-9a-f]{2}' | awk '{print $2}'
+}
+
+# Check if the wifi.mac setting is already set
+CURRENT_SETTING=$(batocera-settings-get-master wifi.mac)
+
+if [ -z "$CURRENT_SETTING" ]; then
+    echo "wifi.mac is not set. Retrieving the current MAC address..."
+    CURRENT_MAC=$(get_current_mac)
+
+    if [ -n "$CURRENT_MAC" ]; then
+        echo "Setting wifi.mac to the current MAC address: $CURRENT_MAC"
+        batocera-settings-set wifi.mac $CURRENT_MAC
+    else
+        echo "Failed to retrieve the current MAC address for $INTERFACE"
+    fi
+else
+    echo "wifi.mac is already set to: $CURRENT_SETTING"
+    ifconfig $INTERFACE down
+    ifconfig $INTERFACE hw ether $CURRENT_SETTING
+    ifconfig $INTERFACE up
+fi
+

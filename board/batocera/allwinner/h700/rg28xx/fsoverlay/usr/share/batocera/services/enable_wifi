@@ -1,0 +1,22 @@
+#!/bin/bash
+
+case "$1" in
+    start)
+        echo -n "Enabling wifi drivers: "
+	modprobe --force-modversion 8188eu
+	modprobe --force-modversion rtl8192cu
+        ;;
+    stop)
+        # Code in here will only be executed on shutdown.
+        echo -n "Disabling wifi drivers: "
+        rmmod 8188eu
+        rmmod rtl8192cu
+	echo "done"
+        ;;
+    *)
+        # Code in here will be executed in all other conditions.
+        echo "Usage: $0 {start|stop}"
+        ;;
+esac
+ 
+exit $?
