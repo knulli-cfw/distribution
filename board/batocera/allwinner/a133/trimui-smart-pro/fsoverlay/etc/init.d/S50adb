@@ -1,0 +1,54 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+	printf "Starting adb daemon: "
+
+	mount -t configfs none /sys/kernel/config
+	mkdir /sys/kernel/config/usb_gadget/g1
+	mkdir /sys/kernel/config/usb_gadget/g1/strings/0x409
+	echo "TRIMUI" > /sys/kernel/config/usb_gadget/g1/strings/0x409/manufacturer
+	echo "SmartPro" > /sys/kernel/config/usb_gadget/g1/strings/0x409/product
+
+	mkdir /sys/kernel/config/usb_gadget/g1/configs/c.1
+	echo 0xc0 > /sys/kernel/config/usb_gadget/g1/configs/c.1/bmAttributes
+	echo 500 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
+	mkdir /sys/kernel/config/usb_gadget/g1/configs/c.1/strings/0x409
+
+	echo 0x18d1 > /sys/kernel/config/usb_gadget/g1/idVendor
+	echo 0xD002 >/sys/kernel/config/usb_gadget/g1/idProduct
+	echo 20080411 > /sys/kernel/config/usb_gadget/g1/strings/0x409/serialnumber 
+
+	mkdir /sys/kernel/config/usb_gadget/g1/functions/ffs.adb
+	echo "TRIMUI ADB" > /sys/kernel/config/usb_gadget/g1/strings/0x409/product
+
+	# Bind fucntions
+	ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.adb/ /sys/kernel/config/usb_gadget/g1/configs/c.1/ffs.adb
+
+	mkdir -p /dev/usb-ffs
+	mkdir /dev/usb-ffs/adb
+
+	mount -t functionfs adb /dev/usb-ffs/adb
+	
+	# Start adb daemon	
+	start-stop-daemon --start --background --oknodo --quiet --exec /usr/bin/adbd
+		
+	echo 0x1 > /sys/kernel/config/usb_gadget/g1/os_desc/b_vendor_code
+	sleep 2
+	echo 5100000.udc-controller > /sys/kernel/config/usb_gadget/g1/UDC
+	;;
+    stop)
+	printf "Stopping adb-daemon: "
+	killall -9 adbd
+        [ $? = 0 ] && echo "OK" || echo "FAIL"
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
