@@ -5,10 +5,11 @@ log="/tmp/resize.log"
 # only at start
 test "$1" != "start" && exit 0
 
-mount -o rw,remount /boot
+mount -o remount,rw /boot
 # true if triggers are not available or not set to do so
 if [ ! -f /boot/boot/autoresize ]
 then
+    echo "autoresize file has not been found . Exiting"
     exit 0
 fi
 
@@ -43,6 +44,7 @@ function textoutput()
 
     # --- BEGIN RESIZE ---
     # remove the trigger
+    echo "removing the trigger. begin Resizing"
     rm -f /boot/boot/autoresize
     DISK=/dev/mmcblk0
     PART=/dev/mmcblk0p4
@@ -51,13 +53,15 @@ function textoutput()
     sync
     # Backup bootloader
 #    dd if=/dev/mmcblk0 bs=1 skip=8192 count=$((0x10000)) of=/tmp/boot_backup.img
-
+    echo "isuue parted commands the disk"
     sgdisk -e ${DISK}
     parted -s -m ${DISK} align-check opt ${PARTNUM}
     parted -s -m ${DISK} resizepart ${PARTNUM} 100%
-    partprobe ${DISK}
+    #set the partition to be recognizable in windows
+    parted -s -m ${DISK} set ${PARTNUM} msftdata on
 
-    #mkfs.vfat -n SHARE ${PART}
+    partprobe ${DISK}
+    echo "formatting the disk "
     mkfs.exfat -n SHARE ${PART}
 
     # Restore bootloader
@@ -72,4 +76,5 @@ function textoutput()
 #Cleanup, restore screen, set progress of last item to 100%
 dialogoutput 100
 clear > /dev/tty1
+echo "done"
 exit 0
