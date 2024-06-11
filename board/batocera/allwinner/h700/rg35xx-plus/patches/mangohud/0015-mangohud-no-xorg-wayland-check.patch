@@ -1,0 +1,20 @@
+commit d136c4c28c57d9c66da78e0a174ef3f375643211
+Author: ajmandourah <ajmandourah@gmail.com>
+Date:   Mon Jun 10 20:21:12 2024 +0300
+
+    libmali
+
+diff --git a/meson.build b/meson.build
+index c624622..fbf3a93 100644
+--- a/meson.build
++++ b/meson.build
+@@ -106,9 +106,6 @@ if dep_wayland_client.found()
+   vulkan_wsi_deps += dep_xkb
+ endif
+
+-if is_unixy and not dep_x11.found() and not dep_wayland_client.found() and not dep_libdrm.found()
+-  error('At least one of "with_x11" and "with_wayland" should be enabled or libdrm must be found')
+-endif
+
+ inc_common = [
+     include_directories('include'),
