@@ -53,8 +53,8 @@ define OD_COMMANDER_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/usr/share/fonts/truetype/droid
 	$(INSTALL) -m 0644 $(@D)/res/Fiery_Turk.ttf \
 	  $(TARGET_DIR)$(OD_COMMANDER_RESOURCES_DIR)
-	$(INSTALL) -m 0644 $(@D)/res/DroidSansFallback.ttf \
-	  $(TARGET_DIR)/usr/share/fonts/truetype/droid/
+	$(INSTALL) -m 0644 $(BR2_EXTERNAL_BATOCERA_PATH)/assets/NanumSquareNeo-bRg.ttf \
+	  $(TARGET_DIR)/usr/share/fonts/truetype/droid/DroidSansFallback.ttf
 	$(INSTALL) -m 0644 $(@D)/res/*.png \
 	  $(TARGET_DIR)$(OD_COMMANDER_RESOURCES_DIR)
 	$(INSTALL) -m 0755 -D $(OD_COMMANDER_BUILDDIR)commander \

@@ -1,0 +1,42 @@
+diff --git a/custom/mupen64plus-core/main/mupen64plus.ini.h b/custom/mupen64plus-core/main/mupen64plus.ini.h
+index d67d679..bb6a234 100644
+--- a/custom/mupen64plus-core/main/mupen64plus.ini.h
++++ b/custom/mupen64plus-core/main/mupen64plus.ini.h
+@@ -11163,6 +11163,16 @@ char inifile[] =
+ "CRC=147E0EDB 36C5B12C\n"
+ "RefMD5=5E1940CA1236A76E8F2D15DE0414AE55\n"
+ "\n"
++"[F8EE2904CD9AED615B1031B2B742EE70]\n"
++"GoodName=Neon Genesis Evangelion (K) [SMJ]\n"
++"CRC=8D79C198 14D66F6D\n"
++"RefMD5=5E1940CA1236A76E8F2D15DE0414AE55\n"
++"\n"
++"[96342F4CFD814CED6C5854C5E7EA0AA3]\n"
++"GoodName=Neon Genesis Evangelion (K) [DXB]\n"
++"CRC=8D79C198 14D66F6D\n"
++"RefMD5=5E1940CA1236A76E8F2D15DE0414AE55\n"
++"\n"
+ "[7FE719DDE2CF1C9227BB9650AFA21A4B]\n"
+ "GoodName=Neon Genesis Evangelion (J) [f1] (PAL)\n"
+ "CRC=AC000A2B 38E3A55C\n"
+diff --git a/mupen64plus-core/data/mupen64plus.ini b/mupen64plus-core/data/mupen64plus.ini
+index bdeb994..36cad46 100644
+--- a/mupen64plus-core/data/mupen64plus.ini
++++ b/mupen64plus-core/data/mupen64plus.ini
+@@ -11159,6 +11159,16 @@ GoodName=Neon Genesis Evangelion (J) [b3]
+ CRC=147E0EDB 36C5B12C
+ RefMD5=5E1940CA1236A76E8F2D15DE0414AE55
+ 
++[F8EE2904CD9AED615B1031B2B742EE70]
++GoodName=Neon Genesis Evangelion (K) [SMJ]
++CRC=8D79C198 14D66F6D
++RefMD5=5E1940CA1236A76E8F2D15DE0414AE55
++
++[96342F4CFD814CED6C5854C5E7EA0AA3]
++GoodName=Neon Genesis Evangelion (K) [DXB]
++CRC=8D79C198 14D66F6D
++RefMD5=5E1940CA1236A76E8F2D15DE0414AE55
++
+ [7FE719DDE2CF1C9227BB9650AFA21A4B]
+ GoodName=Neon Genesis Evangelion (J) [f1] (PAL)
+ CRC=AC000A2B 38E3A55C

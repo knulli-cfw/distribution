@@ -1,0 +1,24 @@
+diff -rupN a/menu/drivers/materialui.c b/menu/drivers/materialui.c
+--- a/menu/drivers/materialui.c	2024-03-22 00:09:50.000000000 +0900
++++ b/menu/drivers/materialui.c	2024-05-24 11:50:40.590133220 +0900
+@@ -7906,7 +7906,7 @@ static void materialui_init_font(
+          fill_pathname_join_special(fontpath, s1, "chinese-fallback-font.ttf",
+                sizeof(fontpath));
+          break;
+-      case RETRO_LANGUAGE_KOREAN:
++      case RETRO_LANGUAGE_GREEK:
+          fill_pathname_join_special(s1,
+                settings->paths.directory_assets, "pkg", sizeof(s1));
+          fill_pathname_join_special(fontpath, s1, "korean-fallback-font.ttf",
+diff -rupN a/menu/drivers/ozone.c b/menu/drivers/ozone.c
+--- a/menu/drivers/ozone.c	2024-03-22 00:09:50.000000000 +0900
++++ b/menu/drivers/ozone.c	2024-05-24 11:50:22.260130497 +0900
+@@ -9157,7 +9157,7 @@ static void ozone_set_layout(
+          fill_pathname_join_special(s1, settings->paths.directory_assets, "pkg", sizeof(s1));
+          fill_pathname_join_special(font_path, s1, "chinese-fallback-font.ttf", sizeof(font_path));
+          break;
+-      case RETRO_LANGUAGE_KOREAN:
++      case RETRO_LANGUAGE_GREEK:
+          fill_pathname_join_special(s1, settings->paths.directory_assets, "pkg", sizeof(s1));
+          fill_pathname_join_special(font_path, s1, "korean-fallback-font.ttf", sizeof(font_path));
+          break;

@@ -3,10 +3,10 @@ default:
     gfxbackend: gl
     video_threaded: true
     retroarch.video_rotation: 0 # for people upgrading
-    # menu retroarch
-    retroarch.menu_driver: ozone
-    retroarch.menu_scale_factor: "1.500000"
     retroarch.audio_driver: alsathread
+    # menu retroarch
+    retroarch.menu_scale_factor: "2.300000"
+    retroarch.video_font_path: "/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf"
 
 nds:
   emulator: drastic

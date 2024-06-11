@@ -11,6 +11,8 @@ BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
 BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/allwinner/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/allwinner/h700/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/allwinner/h700/rg35xx-plus/patches"
 BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/allwinner/h700/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/allwinner/h700/rg35xx-plus/fsoverlay"
 BR2_TARGET_ROOTFS_SQUASHFS4_GZIP=y
+# sets DRM for display management
+BR2_PACKAGE_XSERVER_XORG_SERVER=y
 
 # batocera splash screen
 BR2_PACKAGE_BATOCERA_SPLASH_MPV=y
