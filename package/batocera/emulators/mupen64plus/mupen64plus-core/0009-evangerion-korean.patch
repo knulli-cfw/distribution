@@ -1,0 +1,25 @@
+diff --git a/data/mupen64plus.ini b/data/mupen64plus.ini
+index a4792bc6..8f95f392 100644
+--- a/data/mupen64plus.ini
++++ b/data/mupen64plus.ini
+@@ -18106,6 +18106,20 @@ GoodName=Zelda no Densetsu - Mujura no Kamen (J) (V1.1) [!]
+ CRC=69AE0438 2C63F3F3
+ RefMD5=15D1A2217CAD61C39CFECBFFA0703E25
+ 
++[f8ee2904cd9aed615b1031b2b742ee70]
++GoodName=Neon Genesis Evangelion (K) [SMJ]
++CRC=8D79C198 14D66F6D
++Players=1
++SaveType=Eeprom 16KB
++Rumble=Yes
++
++[96342f4cfd814ced6c5854c5e7ea0aa3]
++GoodName=Neon Genesis Evangelion (K) [DXB]
++CRC=8D79C198 14D66F6D
++Players=1
++SaveType=Eeprom 16KB
++Rumble=Yes
++
+ ; 64DD Games
+ ;
+ [8D3D9F294B6E174BC7B1D2FD1C727530]

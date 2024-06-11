@@ -1,4 +1,4 @@
 config BR2_PACKAGE_ES_THEME_ART_BOOK_NEXT
-	bool "EmulationStation theme Art Book Next (Batocera version)"
+	bool "EmulationStation theme Art Book Next (DC version)"
 	help
-	  https://github.com/anthonycaccese/art-book-next-es
+	  https://github.com/UzuCore/es-theme-art-book-dc
