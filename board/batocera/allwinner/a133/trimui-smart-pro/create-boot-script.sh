@@ -23,6 +23,8 @@ cp "${BOARD_DIR}/batocera-boot.conf" "${BATOCERA_BINARIES_DIR}/boot/batocera-boo
 cp "${BOARD_DIR}/bootlogo.bmp"       "${BATOCERA_BINARIES_DIR}/boot/bootlogo.bmp"         || exit 1
 cp "${BOARD_DIR}/boot/asound.state"  "${BATOCERA_BINARIES_DIR}/boot/asound.state"         || exit 1
 
+cp -r "${BOARD_DIR}/partitions"      "${BATOCERA_BINARIES_DIR}"                           || exit 1
+
 touch "${BATOCERA_BINARIES_DIR}/boot/boot/autoresize"
 
 exit 0
