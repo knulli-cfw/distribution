@@ -1,0 +1,14 @@
+--- a/config.status	2024-06-13 12:07:42.868407343 +0900
++++ b/config.status	2024-06-13 12:40:39.388346090 +0900
+@@ -1285,9 +1285,9 @@ S["X_LIBS"]=""
+ S["X_PRE_LIBS"]=""
+ S["X_CFLAGS"]=""
+ S["XMKMF"]=""
+-S["GLES2_LIBS"]="-L/a133/host/bin/../aarch64-buildroot-linux-gnu/sysroot/usr/lib -lGLESv2 -lGLESv1_CM "
++S["GLES2_LIBS"]="-L/a133/host/bin/../aarch64-buildroot-linux-gnu/sysroot/usr/lib -lGLESv2 -lGLES_CM "
+ S["GLES2_CFLAGS"]=""
+-S["LIBS_gles2"]="-L/a133/host/bin/../aarch64-buildroot-linux-gnu/sysroot/usr/lib -lGLESv2 -lGLESv1_CM   "
++S["LIBS_gles2"]="-L/a133/host/bin/../aarch64-buildroot-linux-gnu/sysroot/usr/lib -lGLESv2 -lGLES_CM "
+ S["CFLAGS_gles2"]="  "
+ S["CPPFLAGS_gles2"]=""
+ S["LTLIBgles2"]="libgles2_plugin.la"
