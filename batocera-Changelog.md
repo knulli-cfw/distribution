@@ -18,6 +18,7 @@ Initial support for the Lenovo Legion Go
 - Support for multi screens (for pincab, mame multi games)
 - Evmapy keys file to help exit running flatpak app
 - Steering wheel support for Thrustmaster T150RS
+- RetroAchievements for Flycast & Libretro-Flycast
 ### Fixed
 - RG552 Splash-screen rotation
 - RG552 Vibrator enabled
