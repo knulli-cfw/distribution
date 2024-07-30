@@ -1,0 +1,11 @@
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	2024-07-26 16:45:50.735333802 -0400
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	2024-07-26 16:46:00.103323079 -0400
+@@ -970,7 +970,7 @@
+ 					reg = <5>;
+ 
+ 					tcon_top_hdmi_out_hdmi: endpoint {
+-						remote-endpoint = <&hdmi_in_tcon_top>;
++						//remote-endpoint = <&hdmi_in_tcon_top>;
+ 					};
+ 				};
+ 			};

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-insmod /lib/modules/mali_kbase.ko
-insmod /lib/modules/4.9.170/kernel/drivers/net/wireless/rtl8821cs/8821cs.ko
+#insmod /lib/modules/mali_kbase.ko
+#insmod /lib/modules/4.9.170/kernel/drivers/net/wireless/rtl8821cs/8821cs.ko
 #insmod /lib/modules/4.9.170/kernel/drivers/bluetooth/bcm_btlpm.ko
-insmod /lib/modules/4.9.170/kernel/drivers/bluetooth/rtl_btlpm.ko
+#insmod /lib/modules/4.9.170/kernel/drivers/bluetooth/rtl_btlpm.ko

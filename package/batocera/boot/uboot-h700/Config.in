@@ -1,0 +1,4 @@
+config BR2_PACKAGE_UBOOT_H700
+    bool "uboot-h700"
+    help
+      uboot files for h700

@@ -16,14 +16,14 @@ BATOCERA_BINARIES_DIR=$6
 
 mkdir -p "${BATOCERA_BINARIES_DIR}/boot/boot"     || exit 1
 
-cp "${BOARD_DIR}/uImage"		"${BATOCERA_BINARIES_DIR}/boot/uImage"			|| exit 1
-cp "${BOARD_DIR}/uInitrd"		"${BATOCERA_BINARIES_DIR}/boot/uInitrd"			|| exit 1
-cp "${BINARIES_DIR}/rootfs.squashfs"	"${BATOCERA_BINARIES_DIR}/boot/boot/batocera.update"	|| exit 1
-cp "${BOARD_DIR}/batocera-boot.conf" 	"${BATOCERA_BINARIES_DIR}/boot/batocera-boot.conf"	|| exit 1
-cp "${BOARD_DIR}/bootlogo.bmp"		"${BATOCERA_BINARIES_DIR}/boot/bootlogo.bmp"		|| exit 1
+mkdir -p "${BATOCERA_BINARIES_DIR}/boot/extlinux" || exit 1
 
-cp -r "${BOARD_DIR}/partitions"		"${BATOCERA_BINARIES_DIR}"				|| exit 1
+cp "${BINARIES_DIR}/Image"           "${BATOCERA_BINARIES_DIR}/boot/boot/linux"           || exit 1
+cp "${BINARIES_DIR}/initrd.lz4"       "${BATOCERA_BINARIES_DIR}/boot/boot/initrd.lz4"       || exit 1
+cp "${BINARIES_DIR}/rootfs.squashfs" "${BATOCERA_BINARIES_DIR}/boot/boot/batocera.update" || exit 1
 
-touch "${BATOCERA_BINARIES_DIR}/boot/boot/autoresize"
+cp "${BINARIES_DIR}/sun50i-h700-anbernic-rg35xx-h.dtb" "${BATOCERA_BINARIES_DIR}/boot/boot/"     || exit 1
+cp "${BOARD_DIR}/boot/extlinux.conf"                   "${BATOCERA_BINARIES_DIR}/boot/extlinux/" || exit 1
+cp "${BOARD_DIR}/bootlogo.bmp" 	                       "${BATOCERA_BINARIES_DIR}/boot/" || exit 1
 
 exit 0
