@@ -8,7 +8,7 @@ SCUMMVM_VERSION = v2.8.1
 SCUMMVM_SITE = $(call github,scummvm,scummvm,$(SCUMMVM_VERSION))
 SCUMMVM_LICENSE = GPLv2
 SCUMMVM_DEPENDENCIES += sdl2 zlib libmpeg2 libogg libvorbis flac libmad
-SCUMMVM_DEPENDENCIES += libpng libtheora faad2 freetype libjpeg-bato
+SCUMMVM_DEPENDENCIES += libpng libtheora faad2 freetype libjpeg-bato fluidsynth
 
 SCUMMVM_ADDITIONAL_FLAGS += -I$(STAGING_DIR)/usr/include -lpthread -lm
 SCUMMVM_ADDITIONAL_FLAGS += -L$(STAGING_DIR)/usr/lib -lGLESv2 -lEGL
@@ -27,7 +27,7 @@ ifeq ($(BR2_riscv),y)
     SCUMMVM_CONF_OPTS += --host=riscv64-linux
 endif
 
-SCUMMVM_CONF_ENV += RANLIB="$(TARGET_RANLIB)" STRIP="$(TARGET_STRIP)" 
+SCUMMVM_CONF_ENV += RANLIB="$(TARGET_RANLIB)" STRIP="$(TARGET_STRIP)"
 SCUMMVM_CONF_ENV += AR="$(TARGET_AR) cru" AS="$(TARGET_AS)"
 
 SCUMMVM_CONF_OPTS += --opengl-mode=auto --disable-debug --enable-optimizations \
@@ -59,6 +59,7 @@ define SCUMMVM_ADD_VIRTUAL_KEYBOARD
         $(TARGET_DIR)/usr/share/scummvm
     cp -f $(@D)/backends/vkeybd/packs/vkeybd_small.zip \
         $(TARGET_DIR)/usr/share/scummvm
+    mkdir -p $(TARGET_DIR)/usr/share/evmapy/
     cp -f $(BR2_EXTERNAL_BATOCERA_PATH)/package/batocera/emulators/scummvm/scummvm.keys \
         $(TARGET_DIR)/usr/share/evmapy/
 endef

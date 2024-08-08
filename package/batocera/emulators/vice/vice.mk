@@ -8,7 +8,7 @@ VICE_VERSION = 3.7.1
 VICE_SOURCE = vice-$(VICE_VERSION).tar.gz
 VICE_SITE = https://sourceforge.net/projects/vice-emu/files/releases
 VICE_LICENSE = GPLv2
-VICE_DEPENDENCIES = ffmpeg sdl2 libpng giflib zlib lame alsa-lib jpeg host-xa host-dos2unix sdl2_image
+VICE_DEPENDENCIES = ffmpeg sdl2 libpng giflib zlib lame alsa-lib jpeg host-xa host-dos2unix sdl2_image libcurl
 
 VICE_CONF_OPTS += --disable-option-checking
 VICE_CONF_OPTS += --disable-pdf-docs
@@ -24,7 +24,7 @@ VICE_CONF_OPTS += --without-pulse
 VICE_CONF_OPTS += --enable-x64
 VICE_CONF_OPTS += --enable-arch=yes
 VICE_CONF_OPTS += --enable-sdl2ui
-VICE_CONF_OPTS += --with-sdlsound 
+VICE_CONF_OPTS += --with-sdlsound
 VICE_CONF_OPTS += --disable-debug-gtk3ui
 
 VICE_CONF_ENV += LDFLAGS=-lSDL2
