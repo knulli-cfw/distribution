@@ -204,7 +204,7 @@ def createLibretroConfig(generator, system, controllers, metadata, guns, wheels,
 
     retroarchConfig['sort_savefiles_enable'] = 'false'     # ensure we don't save system.name + core
     retroarchConfig['sort_savestates_enable'] = 'false'    # ensure we don't save system.name + core
-    retroarchConfig['savestate_directory'] = batoceraFiles.savesDir + system.name
+    retroarchConfig['savestate_directory'] = batoceraFiles.statesDir + system.name
     retroarchConfig['savefile_directory'] = batoceraFiles.savesDir + system.name
 
     # Forced values (so that if the config is not correct, fix it)

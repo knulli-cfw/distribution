@@ -54,6 +54,7 @@ retroarchCoreCustom = retroarchRoot + "/cores/retroarch-core-options.cfg"
 retroarchCores = "/usr/lib/libretro/"
 screenshotsDir = "/userdata/screenshots/"
 savesDir = "/userdata/saves/"
+statesDir = "/userdata/states/"
 
 mupenConf = CONF + '/mupen64/'
 mupenCustom = mupenConf + "mupen64plus.cfg"

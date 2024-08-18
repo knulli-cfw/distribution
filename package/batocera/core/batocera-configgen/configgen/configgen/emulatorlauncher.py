@@ -211,6 +211,11 @@ def start_rom(args, maxnbplayers, rom, romConfiguration):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
+        # statesdir: create the save states directory if not exists
+        dirname = os.path.join(batoceraFiles.statesDir, system.name)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
         # core
         effectiveCore = ""
         if "core" in system.config and system.config["core"] is not None:
