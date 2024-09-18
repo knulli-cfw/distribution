@@ -69,7 +69,7 @@ case "${ACTION}" in
                         amixer -c 0 sset "OutputL Mixer DACR" off
                         amixer -c 0 sset "OutputR Mixer DACL" off
                         amixer -c 0 sset "OutputR Mixer DACR" on
-                    elif [ "$BOARD" == "rg35xx-h" ] || [ "$BOARD" == "rg40xx" ]; then
+                    elif [ "$BOARD" == "rg35xx-h" ] || [ "$BOARD" == "rg35xx-sp" ] || [ "$BOARD" == "rg40xx" ]; then
                         MODE=alsa_output._sys_devices_platform_soc_soc_03000000_codec_mach_sound_card0.stereo-fallback
                         LANG=C pactl set-default-sink "${MODE}" || exit 1
                         amixer -c 0 sset "OutputL Mixer DACL" on
