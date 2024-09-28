@@ -192,12 +192,15 @@ applyLedSettings() {
     # Determine current screen brightness:
     SCREEN_BRIGHTNESS_PERCENT=$(batocera-brightness)
 
+    # Determine current HDMI state:
+    HDMI_STATE="$(cat /sys/devices/platform/soc/6000000.hdmi/extcon/hdmi/state)"
+
     # Calculate applied brightness based on screen brightness percentage of LED brightness.
     #APPLIED_BRIGHTNESS=$(bc <<<"${LED_BRIGHTNESS}*${SCREEN_BRIGHTNESS_PERCENT}/100")
     APPLIED_BRIGHTNESS=$(( ${LED_BRIGHTNESS}*${SCREEN_BRIGHTNESS_PERCENT}/100 ))
 
-    # If calculation crapped out, just use the LED brightness at 100%, I guess?
-    if [ -z $APPLIED_BRIGHTNESS ]; then
+    # If currently plugged to HDMI or brightness calculation crapped out, let's just use the LED brightness at 100%.
+    if [ "$HDMI_STATE" = "HDMI=1" ] || [ -z $APPLIED_BRIGHTNESS ]; then
       APPLIED_BRIGHTNESS=${LAST_LED_VALUES[1]}
     fi
 
