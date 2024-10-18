@@ -50,25 +50,29 @@ def getBezelInfos(rom, bezel, systemName, emulator):
         ( f"{batoceraFiles.overlayUser}/{bezel}/games/{romBase}-{resolution}", True),
         ( f"{batoceraFiles.overlayUser}/{bezel}/games/{romBase}", True),
         ( f"{batoceraFiles.overlaySystem}/{bezel}/games/{romBase}-{resolution}", True),
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/games/{romBase}", True),
-        ( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{altDecoration}-{resolution}", False) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{altDecoration}", False) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{resolution}", False),
-        ( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}", False),
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{altDecoration}-{resolution}", False) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{altDecoration}", False) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{resolution}", False),
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}", False),
-        ( f"{batoceraFiles.overlayUser}/{bezel}/default-{altDecoration}-{resolution}", True) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlayUser}/{bezel}/default-{altDecoration}", True) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlayUser}/{bezel}/default-{resolution}", True),
-        ( f"{batoceraFiles.overlayUser}/{bezel}/default", True),
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/default-{altDecoration}-{resolution}", True) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/default-{altDecoration}", True) if altDecoration != 0 else None,
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/default-{resolution}", True),
-        ( f"{batoceraFiles.overlaySystem}/{bezel}/default", True)
+        ( f"{batoceraFiles.overlaySystem}/{bezel}/games/{romBase}", True)
     ]
-    
+
+    if altDecoration != "0":
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{altDecoration}-{resolution}", False))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{altDecoration}-{resolution}", False))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/default-{altDecoration}-{resolution}", True))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/default-{altDecoration}-{resolution}", True))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{altDecoration}", False))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{altDecoration}", False))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/default-{altDecoration}", True))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/default-{altDecoration}", True))
+
+    if altDecoration != "90" and altDecoration != "270":
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}-{resolution}", False))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}-{resolution}", False))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/default-{resolution}", True))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/default-{resolution}", True))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/systems/{systemName}", False))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/systems/{systemName}", False))
+        search_paths.append(( f"{batoceraFiles.overlayUser}/{bezel}/default", True))
+        search_paths.append(( f"{batoceraFiles.overlaySystem}/{bezel}/default", True))
+
     for entry in search_paths:
         if entry is None:
             continue
