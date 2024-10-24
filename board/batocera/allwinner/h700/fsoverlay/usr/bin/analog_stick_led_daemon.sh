@@ -249,7 +249,8 @@ updateCurrentBatteryMode() {
     # If battery status is not null and battery is charging
     if [ ! -z $BATTERY_STATUS ] && [ $BATTERY_STATUS == $BATTERY_CHARGING ] && [ $INDICATE_CHARGING -eq 1 ]; then
       CURRENT_BATTERY_MODE=$MODE_BATTERY_CHARGING
-    elif ! $1; then
+    # If previous battery mode wasn't charging and the condition for battery check wasn't met, just keep last battery mode.
+    elif [ $LAST_BATTERY_MODE -ne $MODE_BATTERY_CHARGING ] && ! $1; then
       CURRENT_BATTERY_MODE=$LAST_BATTERY_MODE
     # If battery status is not null and battery is discharging, any warning thresholds is larger than 0 and there is capacity information available
     elif [ ! -z $BATTERY_STATUS ] && [ $BATTERY_STATUS == $BATTERY_DISCHARGING ] && ([ $THRESHOLD_WARNING -gt 0 ] || [ $THRESHOLD_DANGER -gt 0 ]) && [ ! -z $KEY_BATTERY_CAPACITY ] && [ -f $KEY_BATTERY_CAPACITY ]; then
