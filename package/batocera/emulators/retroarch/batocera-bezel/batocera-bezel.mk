@@ -23,7 +23,6 @@ define BATOCERA_BEZEL_INSTALL_TARGET_CMDS
 	cp -rf --remove-destination $(@D)/default_nocurve_night/default.*  $(TARGET_DIR)/usr/share/batocera/datainit/decorations/consoles/
 	cp -rf --remove-destination $(@D)/default_nocurve_night/systems    $(TARGET_DIR)/usr/share/batocera/datainit/decorations/consoles/
 	cp -rf --remove-destination $(@D)/default_standalone_night/systems $(TARGET_DIR)/usr/share/batocera/datainit/decorations/consoles/
-	(cd $(TARGET_DIR)/usr/share/batocera/datainit/decorations && ln -sf consoles default)
 
 	echo -e "You can find help on how to customize decorations: \n" \
 		> $(TARGET_DIR)/usr/share/batocera/datainit/decorations/readme.txt

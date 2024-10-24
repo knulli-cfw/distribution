@@ -1,0 +1,6 @@
+config BR2_PACKAGE_KNULLI_BEZELS
+        bool "knulli bezels"
+        help
+          Knulli bezels
+
+	  https://github.com/chrizzo-hb/knulli-bezels

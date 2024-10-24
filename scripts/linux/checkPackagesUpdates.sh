@@ -5,6 +5,7 @@ PACKAGES_RETROARCH="retroarch
                     retroarch-assets
                     libretro-core-info
                     batocera-bezel
+                    knulli-bezels
                     batocera-shaders
                     common-shaders
                     glsl-shaders
