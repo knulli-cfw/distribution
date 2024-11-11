@@ -739,3 +739,54 @@ zxspectrum:
 vpinball:
   emulator: vpinball
   core:     vpinball
+
+# Custom systems
+
+arcade:
+  emulator: libretro
+  core:     fbneo
+cps1:
+  emulator: libretro
+  core:     fbneo
+cps2:
+  emulator: libretro
+  core:     fbneo
+cps3:
+  emulator: libretro
+  core:     fbneo
+famicom:
+  emulator: libretro
+  core:     nestopia
+gbh:
+  emulator: libretro
+  core:     gambatte
+gbah:
+  emulator: libretro
+  core:     mgba
+gbch:
+  emulator: libretro
+  core:     gambatte
+genesis:
+  emulator: libretro
+  core:     genesisplusgx
+genh:
+  emulator: libretro
+  core:     genesisplusgx
+megadrivejp:
+  emulator: libretro
+  core:     genesisplusgx
+nesh:
+  emulator: libretro
+  core:     fceumm
+sfc:
+  emulator: libretro
+  core:     snes9x
+snesh:
+  emulator: libretro
+  core:     snes9x
+tg16:
+  emulator: libretro
+  core:     pce_fast
+tg16cd:
+  emulator: libretro
+  core:     pce_fast
