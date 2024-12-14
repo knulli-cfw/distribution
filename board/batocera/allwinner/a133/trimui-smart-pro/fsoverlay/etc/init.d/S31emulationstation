@@ -8,9 +8,11 @@ case "$1" in
 	start)
 	    enabled="$(/usr/bin/batocera-settings-get system.es.atstartup)"
 	    if [ "$enabled" != "0" ]; then
-		/etc/init.d/S06audio restart
+		if pidof emulationstation > /dev/null; then
+		    echo "Emulationstation is already running..."
+		    exit 1
+		fi
 		emulationstation-standalone &
-		amixer set 'Headphone' 4
 	    fi
 	    ;;
 
@@ -33,6 +35,9 @@ case "$1" in
 
 	restart|reload)
 		"$0" stop
+		while pidof emulationstation > /dev/null; do
+		    sleep 0.1  # Wait until emulationstation is fully stopped
+		done
 		"$0" start
 		;;
 

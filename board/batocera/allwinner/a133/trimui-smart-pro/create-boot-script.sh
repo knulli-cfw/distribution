@@ -21,7 +21,6 @@ cp "${BOARD_DIR}/uInitrd"            "${BATOCERA_BINARIES_DIR}/boot/uInitrd"    
 cp "${BINARIES_DIR}/rootfs.squashfs" "${BATOCERA_BINARIES_DIR}/boot/boot/batocera.update" || exit 1
 cp "${BOARD_DIR}/batocera-boot.conf" "${BATOCERA_BINARIES_DIR}/boot/batocera-boot.conf"   || exit 1
 cp "${BOARD_DIR}/bootlogo.bmp"       "${BATOCERA_BINARIES_DIR}/boot/bootlogo.bmp"         || exit 1
-#cp "${BOARD_DIR}/boot/asound.state"  "${BATOCERA_BINARIES_DIR}/boot/asound.state"         || exit 1
 
 cp -r "${BOARD_DIR}/partitions"		"${BATOCERA_BINARIES_DIR}"				|| exit 1
 

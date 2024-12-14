@@ -126,7 +126,7 @@ state.audiocodec {
 	control.10 {
 		iface MIXER
 		name 'Headphone Volume'
-		value 2
+		value 1
 		comment {
 			access 'read write'
 			type INTEGER
