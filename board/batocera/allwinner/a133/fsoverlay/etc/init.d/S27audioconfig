@@ -106,9 +106,7 @@ restart() {
 case "$1" in
  	start)
 		start_audioconfig
-		/etc/init.d/S06audio restart
 		aplay /usr/share/sounds/silence.wav
-		amixer set 'Headphone' 4
 	;;
  	stop)
 		stop_audioconfig

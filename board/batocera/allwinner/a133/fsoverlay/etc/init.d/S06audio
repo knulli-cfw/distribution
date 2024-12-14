@@ -26,18 +26,19 @@ start_pipewire() {
 
 stop_pipewire() {
     printf "Stopping pipewire: "
-    start-stop-daemon -K -q -p /var/run/pipewire.pid
-    killall pipewire
+    start-stop-daemon -K -q -p /var/run/pipewire.pid ;     killall pipewire
     echo "OK"
 }
 
 case "$1" in
     start)
-        alsactl init # init cards with alsa files
-	start_pipewire
-	amixer sset HpSpeaker on
-	amixer sset LINEOUT on
-	amixer set 'Headphone' 4
+    	start_pipewire
+        alsactl restore 0 -f /userdata/system/.asound.state || (
+            # default values in case asound.state does not exist yet
+            amixer sset HpSpeaker on &&
+            amixer sset LINEOUT on &&
+            amixer set 'Headphone' 1
+        )
     ;;
     stop)
         stop_pipewire
