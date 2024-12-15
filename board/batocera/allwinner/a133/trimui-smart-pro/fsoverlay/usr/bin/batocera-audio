@@ -39,9 +39,9 @@ case "${ACTION}" in
         MODE="$2"
         case "${MODE}" in
             auto)
+		           amixer -c 0 sset Headphone 1
                    MODE=alsa_output._sys_devices_platform_soc_sndcodec_sound_card0.stereo-fallback
                    LANG=C pactl set-default-sink "${MODE}" || exit 1
-		           amixer -c 0 sset Headphone 1
 		   ;;
        	    *)
                 LANG=C pactl set-default-sink "${MODE}" || exit 1

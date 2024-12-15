@@ -32,13 +32,13 @@ stop_pipewire() {
 
 case "$1" in
     start)
-    	start_pipewire
         alsactl restore 0 -f /userdata/system/.asound.state || (
             # default values in case asound.state does not exist yet
             amixer sset HpSpeaker on &&
             amixer sset LINEOUT on &&
             amixer set 'Headphone' 1
         )
+    	start_pipewire
     ;;
     stop)
         stop_pipewire

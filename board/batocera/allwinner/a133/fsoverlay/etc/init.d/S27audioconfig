@@ -106,6 +106,7 @@ restart() {
 case "$1" in
  	start)
 		start_audioconfig
+		/etc/init.d/S06audio restart  # somehow pipewire requires a reboot to take into account the changes on a133 SoC
 		aplay /usr/share/sounds/silence.wav
 	;;
  	stop)
