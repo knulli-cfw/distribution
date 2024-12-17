@@ -1,7 +1,5 @@
 #!/bin/sh
 
-alsactl store 0 -f /userdata/system/.asound.state
-
 sync
 
 # Start a background process that waits for a timeout duration before forcing shutdown

@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# TODO comment
+#
+
+amixer sset HpSpeaker on
+amixer sset LINEOUT on
+amixer set 'Headphone' 0
