@@ -1,15 +1,8 @@
 #!/bin/sh
 
-check_ingame() {
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:1234/runningGame")
-
-    if [ "$HTTP_STATUS" -eq 201 ]; then
-        # Game is not running
-        return 1
-    else
-        return 0
-    fi
-}
+# These shouldn't change but are configurable
+IN_GAME_FLAG=/var/run/in-game.flag
+SHUTDOWN_FLAG=/var/run/shutdown.flag
 
 do_poweroff() {
     POWEROFF=$1
@@ -18,11 +11,14 @@ do_poweroff() {
     batocera-brightness dispoff
     amixer set Master mute
 
-    if check_ingame; then
-        touch /var/run/shutdown-ingame.flag
+    # Create our flag file indicating a shutdown has been commenced
+    touch $SHUTDOWN_FLAG
+
+    if [ -f $IN_GAME_FLAG ]; then
+        echo "in-game=1" >> $SHUTDOWN_FLAG
         batocera-es-swissknife --emukill # Exits an emulator if one is running and is needed for auto save state on exit.
     else
-        touch /var/run/shutdown-normal.flag
+        echo "in-game=0" >> $SHUTDOWN_FLAG
     fi
 
     if [ "$POWEROFF" = "reboot" ]; then
@@ -32,6 +28,7 @@ do_poweroff() {
         mount -o remount,ro /boot
         reboot
     else
+
         sync
 
         # Start a background process that waits for a timeout duration before forcing shutdown
@@ -64,3 +61,4 @@ case "$1" in
 esac
 
 exit 0
+
