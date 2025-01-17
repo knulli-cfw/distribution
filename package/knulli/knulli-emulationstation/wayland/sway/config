@@ -1,0 +1,41 @@
+include /var/run/sway-display.conf
+
+# Modifier key
+set $alt Mod1
+
+# hide_cursor hides the cursor image after the specified timeout (in milliseconds) has elapsed with no activity on that cursor
+seat * hide_cursor 500
+
+# Default wallpaper
+output * bg /usr/share/emulationstation/resources/logo.png fill
+
+# Set keyboard layout (default US)
+input * {
+    xkb_layout "us"
+}
+
+# kill focused window
+bindsym Mod1+F4 kill
+
+# Make the current focus fullscreen
+bindsym Mod1+f fullscreen
+
+# Set a default rule to remove decorations for all windows
+default_border none
+
+# Set a default rule to start all applications in fullscreen mode
+for_window [app_id=".*"] fullscreen
+for_window [class=".*"] fullscreen
+
+# Hide decorations for specific XWayland apps
+for_window [instance="supermodel"] border none, fullscreen
+for_window [instance="dolphin-emu"] border none, fullscreen
+for_window [instance="batocera-config-dolphin"] border none, fullscreen
+for_window [instance="batocera-config-scummvm"] border none, fullscreen
+for_window [instance="scummvm"] border none, fullscreen
+for_window [instance="duckstation-qt"] border none, fullscreen
+for_window [instance="xterm"] border none, fullscreen
+
+# Starts EmulationStation when loading sway
+exec /usr/bin/batocera-mouse hide
+exec /usr/bin/emulationstation-standalone

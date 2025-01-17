@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#ARCHS="x86_64 odroidxu4 bcm2835 bcm2836 bcm2837 bcm2711 bcm2712 rk3128 rk3288 rk3326 rk3328 rk3399 rk3568 rk3588 s812 s905 s905gen2 s905gen3 s9gen4 s922x a3gen2 h3 h5 h6 h616 riscv"
 ARCHS="rk3128 rk3326 rk3568 a133 h700 r16 sm8250"
 
 BR_DIR=$1
@@ -24,9 +23,9 @@ do
     mkdir -p "${TMP_CONFIG}" "${TMP_CONFIGS}" || exit 1
 
     # generate the defconfig
-    "${BR2_EXTERNAL_BATOCERA_PATH}/configs/createDefconfig.sh" "${BR2_EXTERNAL_BATOCERA_PATH}/configs/batocera-${ARCH}"
+    "${BR2_EXTERNAL_BATOCERA_PATH}/configs/createDefconfig.sh" "${BR2_EXTERNAL_BATOCERA_PATH}/configs/knulli-${ARCH}"
 
-    (make O="${TMP_CONFIG}" -C ${BR_DIR} BR2_EXTERNAL="${BR2_EXTERNAL_BATOCERA_PATH}" "batocera-${ARCH}_defconfig" > /dev/null) || exit 1
+    (make O="${TMP_CONFIG}" -C ${BR_DIR} BR2_EXTERNAL="${BR2_EXTERNAL_BATOCERA_PATH}" "knulli-${ARCH}_defconfig" > /dev/null) || exit 1
     cp "${TMP_CONFIG}/.config" "${TMP_CONFIGS}/config_${ARCH}" || exit 1
 done
 

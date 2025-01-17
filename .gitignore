@@ -1,6 +1,6 @@
 /output
 /dl
-/configs/batocera-*_defconfig
+/configs/knulli-*_defconfig
 /.auto.deps
 /.config.cmd
 /.config.old
