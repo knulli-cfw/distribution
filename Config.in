@@ -1,4 +1,4 @@
-menu "batocera.linux"
+menu "knulli"
 
 menu "System"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/core/batocera-system/Config.in"
@@ -143,9 +143,6 @@ menu "Emulationstation"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/batocera-es-system/Config.in"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/batocera-es-web-ui/Config.in"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/es-theme-carbon/Config.in"
-  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/es-theme-art-book-next/Config.in"
-  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/es-theme-knulli/Config.in"
-  source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulationstation/es-background-musics/Config.in"
 endmenu
 
 menu "Controllers"
@@ -203,11 +200,10 @@ endmenu
 
 menu "Emulators"
   menu "Retroarch"
-    source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/retroarch/Config.in"
+#    source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/retroarch/Config.in"
     source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/retroarch-assets/Config.in"
     source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/libretro-core-info/Config.in"
     source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/batocera-bezel/Config.in"
-    source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/knulli-bezels/Config.in"
     source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/batocera-retroachievements-sounds/Config.in"
     menu "Shaders"
       source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/emulators/retroarch/shaders/batocera-shaders/Config.in"
@@ -664,4 +660,13 @@ menu "Database"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/batocera/database/influxdb/Config.in"
 endmenu
 
+endmenu
+
+menu "Knulli Packages"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/retroarch/retroarch/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/retroarch/knulli-bezels/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/knulli-emulationstation/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/themes/es-theme-art-book-next/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/themes/es-theme-knulli/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/music/es-background-musics/Config.in"
 endmenu

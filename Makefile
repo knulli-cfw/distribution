@@ -2,7 +2,7 @@ PROJECT_DIR    := $(shell pwd)
 DL_DIR         ?= $(PROJECT_DIR)/dl
 OUTPUT_DIR     ?= $(PROJECT_DIR)/output
 CCACHE_DIR     ?= $(PROJECT_DIR)/buildroot-ccache
-LOCAL_MK       ?= $(PROJECT_DIR)/batocera.mk
+LOCAL_MK       ?= $(PROJECT_DIR)/knulli.mk
 EXTRA_OPTS     ?=
 DOCKER_OPTS    ?=
 MAKE_JLEVEL    ?= $(shell nproc)
@@ -17,7 +17,7 @@ ifdef PARALLEL_BUILD
 	MAKE_OPTS  += -j$(MAKE_JLEVEL)
 endif
 
-TARGETS := $(sort $(shell find $(PROJECT_DIR)/configs/ -name 'b*.board' | sed -n 's/.*\/batocera-\(.*\).board/\1/p'))
+TARGETS := $(sort $(shell find $(PROJECT_DIR)/configs/ -name 'k*.board' | sed -n 's/.*\/knulli-\(.*\).board/\1/p'))
 UID  := $(shell id -u)
 GID  := $(shell id -g)
 OS := $(shell uname)
@@ -50,8 +50,8 @@ else # DIRECT_BUILD
 		DOCKER_OPTS += -i
 	endif
 
-	DOCKER_REPO    ?= batoceralinux
-	IMAGE_NAME     ?= batocera.linux-build
+	DOCKER_REPO    ?= knulli
+	IMAGE_NAME     ?= knulli-build
 
 define RUN_DOCKER
 	$(DOCKER) run -t --init --rm \
@@ -101,11 +101,11 @@ build-docker-image: _check_docker
 	@$(DOCKER) pull $(DOCKER_REPO)/$(IMAGE_NAME)
 	@touch .ba-docker-image-available
 
-batocera-docker-image: $(if $(DIRECT_BUILD),,$(.ba-docker-image-available))
+knulli-docker-image: $(if $(DIRECT_BUILD),,$(.ba-docker-image-available))
 
 update-docker-image: _check_docker
 	-@rm .ba-docker-image-available > /dev/null
-	@$(MAKE) batocera-docker-image
+	@$(MAKE) knulli-docker-image
 
 publish-docker-image: _check_docker
 	@$(DOCKER) push $(DOCKER_REPO)/$(IMAGE_NAME):latest
@@ -122,37 +122,37 @@ dl-dir:
 %-supported:
 	$(if $(findstring $*, $(TARGETS)),,$(error "$* not supported!"))
 
-%-clean: batocera-docker-image output-dir-%
+%-clean: knulli-docker-image output-dir-%
 	@$(MAKE_BUILDROOT) clean
 
-%-config: batocera-docker-image output-dir-%
-	@$(PROJECT_DIR)/configs/createDefconfig.sh $(PROJECT_DIR)/configs/batocera-$*
+%-config: knulli-docker-image output-dir-%
+	@$(PROJECT_DIR)/configs/createDefconfig.sh $(PROJECT_DIR)/configs/knulli-$*
 	@for opt in $(EXTRA_OPTS); do \
-		echo $$opt >> $(PROJECT_DIR)/configs/batocera-$*_defconfig ; \
+		echo $$opt >> $(PROJECT_DIR)/configs/knulli-$*_defconfig ; \
 	done
-	@$(MAKE_BUILDROOT) batocera-$*_defconfig
+	@$(MAKE_BUILDROOT) knulli-$*_defconfig
 
-%-build: batocera-docker-image %-config ccache-dir dl-dir
+%-build: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) $(CMD)
 
-%-source: batocera-docker-image %-config ccache-dir dl-dir
+%-source: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) source
 
-%-show-build-order: batocera-docker-image %-config ccache-dir dl-dir
+%-show-build-order: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) show-build-order
 
-%-kernel: batocera-docker-image %-config ccache-dir dl-dir
+%-kernel: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) linux-menuconfig
 
 # force -j1 or graph-depends python script will bail
-%-graph-depends: batocera-docker-image %-config ccache-dir dl-dir
+%-graph-depends: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) -j1 BR2_GRAPH_OUT=svg graph-depends
 
-%-shell: batocera-docker-image output-dir-% _check_docker
+%-shell: knulli-docker-image output-dir-% _check_docker
 	$(if $(BATCH_MODE),$(if $(CMD),,$(error "not supported in BATCH_MODE if CMD not specified!")),)
 	@$(RUN_DOCKER) $(CMD)
 
-%-ccache-stats: batocera-docker-image %-config ccache-dir dl-dir
+%-ccache-stats: knulli-docker-image %-config ccache-dir dl-dir
 	@$(MAKE_BUILDROOT) ccache-stats
 
 %-build-cmd:
@@ -167,14 +167,14 @@ dl-dir:
 	@$(MAKE) $*-build CMD=$(PKG)
 
 %-webserver: output-dir-%
-	$(if $(wildcard $(OUTPUT_DIR)/$*/images/batocera/*),,$(error "$* not built!"))
+	$(if $(wildcard $(OUTPUT_DIR)/$*/images/knulli/*),,$(error "$* not built!"))
 	$(if $(shell which python 2>/dev/null),,$(error "python not found!"))
 ifeq ($(strip $(BOARD)),)
-	$(if $(wildcard $(OUTPUT_DIR)/$*/images/batocera/images/$*/.*),,$(error "Directory not found: $(OUTPUT_DIR)/$*/images/batocera/images/$*"))
-	python3 -m http.server --directory $(OUTPUT_DIR)/$*/images/batocera/images/$*/
+	$(if $(wildcard $(OUTPUT_DIR)/$*/images/knulli/images/$*/.*),,$(error "Directory not found: $(OUTPUT_DIR)/$*/images/knulli/images/$*"))
+	python3 -m http.server --directory $(OUTPUT_DIR)/$*/images/knulli/images/$*/
 else
-	$(if $(wildcard $(OUTPUT_DIR)/$*/images/batocera/images/$(BOARD)/.*),,$(error "Directory not found: $(OUTPUT_DIR)/$*/images/batocera/images/$(BOARD)"))
-	python3 -m http.server --directory $(OUTPUT_DIR)/$*/images/batocera/images/$(BOARD)/
+	$(if $(wildcard $(OUTPUT_DIR)/$*/images/knulli/images/$(BOARD)/.*),,$(error "Directory not found: $(OUTPUT_DIR)/$*/images/knulli/images/$(BOARD)"))
+	python3 -m http.server --directory $(OUTPUT_DIR)/$*/images/knulli/images/$(BOARD)/
 endif
 
 %-rsync: output-dir-%
@@ -199,7 +199,7 @@ endif
 
 %-flash: %-supported
 	$(if $(DEV),,$(error "DEV not specified!"))
-	@gzip -dc $(OUTPUT_DIR)/$*/images/batocera/images/$*/batocera-*.img.gz | sudo dd of=$(DEV) bs=5M status=progress
+	@gzip -dc $(OUTPUT_DIR)/$*/images/knulli/images/$*/knulli-*.img.gz | sudo dd of=$(DEV) bs=5M status=progress
 	@sync
 
 %-upgrade: %-supported
@@ -211,8 +211,8 @@ endif
 	@ls /tmp/mount
 	@echo "continue BATOCERA upgrade $(DEV)1 with $* build? [y/N]"
 	@read line; if [ "$$line" != "y" ]; then echo aborting; exit 1 ; fi
-	-@sudo rm /tmp/mount/boot/batocera
-	@sudo tar xvf $(OUTPUT_DIR)/$*/images/batocera/images/$*/boot.tar.xz -C /tmp/mount --no-same-owner --exclude=batocera-boot.conf --exclude=config.txt
+	-@sudo rm /tmp/mount/boot/knulli
+	@sudo tar xvf $(OUTPUT_DIR)/$*/images/knulli/images/$*/boot.tar.xz -C /tmp/mount --no-same-owner --exclude=batocera-boot.conf --exclude=config.txt
 	@sudo umount /tmp/mount
 	-@rmdir /tmp/mount
 	@sudo fatlabel $(DEV)1 BATOCERA
