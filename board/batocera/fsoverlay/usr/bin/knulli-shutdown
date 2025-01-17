@@ -1,29 +1,32 @@
 #!/bin/sh
+SHUTDOWN_FLAG=/var/run/shutdown.flag
 
-check_ingame() {
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:1234/runningGame")
+# check_ingame() {
+#     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:1234/runningGame")
 
-    if [ "$HTTP_STATUS" -eq 201 ]; then
-        # Game is not running
-        return 1
-    else
-        return 0
-    fi
-}
+#     if [ "$HTTP_STATUS" -eq 201 ]; then
+#         # Game is not running
+#         return 1
+#     else
+#         return 0
+#     fi
+# }
 
 do_poweroff() {
     POWEROFF=$1
+
+    touch $SHUTDOWN_FLAG
 
     # Lets hide what happens from the user during shutdown/reboot to make for a more seemless experience
     batocera-brightness dispoff
     amixer set Master mute
 
-    if check_ingame; then
-        touch /var/run/shutdown-ingame.flag
-        batocera-es-swissknife --emukill # Exits an emulator if one is running and is needed for auto save state on exit.
-    else
-        touch /var/run/shutdown-normal.flag
-    fi
+    # if check_ingame; then
+    #     touch /var/run/shutdown-ingame.flag
+    batocera-es-swissknife --emukill # Exits an emulator if one is running and is needed for auto save state on exit.
+    # else
+    #     touch /var/run/shutdown-normal.flag
+    # fi
 
     if [ "$POWEROFF" = "reboot" ]; then
         mount -o remount,rw /boot
