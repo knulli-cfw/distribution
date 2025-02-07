@@ -14,8 +14,10 @@ NTPD_ARGS="-u ntp:ntp -g"
 start() {
 	printf 'Starting %s: ' "$DAEMON"
 	# shellcheck disable=SC2086 # we need the word splitting
+	# sh -c: Automatically restart ntpd on failure.
 	start-stop-daemon -S -q -p "$PIDFILE" -x "/usr/sbin/$DAEMON" \
-		-- $NTPD_ARGS -p "$PIDFILE"
+		-ba /bin/sh -- -c 'while :; do "$0" "$@" && exit; sleep 1; done' \
+		"/usr/sbin/$DAEMON" $NTPD_ARGS -np "$PIDFILE"
 	status=$?
 	if [ "$status" -eq 0 ]; then
 		echo "OK"
