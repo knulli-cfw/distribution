@@ -4,8 +4,9 @@
 # using the sdl-compat/SDL2 for rendering
 insmod /lib/modules/mali_kbase.ko
 
-# Rotate screen for the rg28xx
 BOARD=$(cat /boot/boot/batocera.board)
+
+# Rotate screen for the rg28xx
 if [ "$BOARD" = "rg28xx" ]; then
     fbset -g 480 640 480 1280 32
 fi
@@ -22,6 +23,12 @@ if [ "$RESTART_FLAG" = "1" ]; then
 else
     # Call the charger process
     /usr/bin/charger
+fi
+
+if [ "$BOARD" = "rg35xx-sp" ]; then
+    # Don't proceed with boot if lid is closed.
+    LIDSW=/sys/class/power_supply/axp2202-battery/hallkey
+    [ "$(cat "$LIDSW")" = 0 ] && exec knulli-shutdown -s
 fi
 
 # Start the progress bar
