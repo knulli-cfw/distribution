@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# --- CONFIGURATION ---
+BATTERY_PATH="/sys/class/power_supply/battery"
+LED_PATH="/sys/class/leds/work"
+THRESHOLD=5                                # Threshold for blinking
+CHECK_INTERVAL=20                          # Check interval in seconds
+# --- CONFIGURATION END ---
+
+trap "echo default-on > $LED_PATH/trigger; exit 0" EXIT     # Keep the led on in case of exiting the daemon
+
+# Check configured paths
+if [ ! -d "$BATTERY_PATH" ]; then
+    echo "Error: Battery not found at $BATTERY_PATH" >&2
+    exit 1
+fi
+if [ ! -d "$LED_PATH" ]; then
+    echo "Error: LED not found at $LED_PATH" >&2
+    exit 1
+fi
+if [ ! -w "$LED_PATH/trigger" ]; then
+    echo "Error: LED trigger not found at $LED_PATH/trigger" >&2
+    exit 1
+fi
+
+echo "Battery monitor for led started. Blink threshold: $THRESHOLD%, Check interval: $CHECK_INTERVAL"
+
+while true; do
+  CAPACITY=$(cat "$BATTERY_PATH/capacity")
+  STATUS=$(cat "$BATTERY_PATH/status") # For checking if it is not charging
+
+  # If battery is under threshold and discharging.
+  if [ "$CAPACITY" -lt "$THRESHOLD" ] && [ "$STATUS" = "Discharging" ]; then
+    # Check if it is already blinking
+    CURRENT_TRIGGER=$(cat "$LED_PATH/trigger")
+    if [[ "$CURRENT_TRIGGER" != *"[timer]"* ]]; then
+      echo "Low battery ($CAPACITY%), starting led blinking..."
+      echo timer > "$LED_PATH/trigger"
+    fi
+  else
+    # If battery is ok or charging stop blinking in case it was enabled.
+    CURRENT_TRIGGER=$(cat "$LED_PATH/trigger")
+    if [[ "$CURRENT_TRIGGER" == *"[timer]"* ]]; then
+      echo "Battery OK ($CAPACITY%) or ($STATUS), stopping blinking..."
+      echo default-on > "$LED_PATH/trigger"
+    fi
+  fi
+  
+  sleep $CHECK_INTERVAL
+done
