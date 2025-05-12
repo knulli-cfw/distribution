@@ -10,8 +10,8 @@ BR2_PACKAGE_BATOCERA_TARGET_RK3568=y
 BR2_TARGET_OPTIMIZATION="-pipe -fsigned-char -mcpu=cortex-a55 -mtune=cortex-a55"
 #BR2_TARGET_GENERIC_GETTY_PORT="tty1"
 BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
-BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/patches"
-BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/powkiddy-rgb30/fsoverlay"
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/patches"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/powkiddy-rgb30/fsoverlay"
 
 # Linux headers same as kernel, a BSP 5.10series
 BR2_KERNEL_HEADERS_AS_KERNEL=y
@@ -22,10 +22,10 @@ BR2_LINUX_KERNEL=y
 #BR2_LINUX_KERNEL_CUSTOM_GIT=y
 #BR2_LINUX_KERNEL_CUSTOM_REPO_URL="https://github.com/TheGammaSqueeze/5.10-linux-rockchip.git"
 #BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION="GammaOS"
-BR2_LINUX_KERNEL_PATCH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/linux_bsp_patches"
+BR2_LINUX_KERNEL_PATCH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/linux_bsp_patches"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/linux-bsp-libs-defconfig.config"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3566/linux-defconfig-fragment.config"
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/linux-bsp-libs-defconfig.config"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3566/linux-defconfig-fragment.config"
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 
 # Build the DTB from the kernel sources

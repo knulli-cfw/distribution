@@ -1,5 +1,5 @@
 # users
-BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/users.txt"
+BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/users.txt"
 
 # toolchain definition
 BR2_OPTIMIZE_2=y
@@ -43,7 +43,7 @@ BR2_PACKAGE_BATOCERA_EXTRAS=n
 BR2_PACKAGE_BATOCERA_TOOLS=n
 BR2_PACKAGE_BATOCERA_ALL_SYSTEMS=n
 BR2_PACKAGE_BATOCERA_LINUX_FIRMWARES=n
-BR2_SYSTEM_BIN_SH_DASH=y # /bin/sh implementation; set here because a `choice` cannot be `select`ed, e.g. from batocera-system/Config.in
+BR2_SYSTEM_BIN_SH_DASH=y # /bin/sh implementation; set here because a `choice` cannot be `select`ed, e.g. from knulli-system/Config.in
 
 # Enables ccache
 BR2_CCACHE=y

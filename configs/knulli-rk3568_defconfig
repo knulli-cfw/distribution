@@ -1,6 +1,6 @@
 # from file knulli-board.common
 # users
-BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/users.txt"
+BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/users.txt"
 
 # toolchain definition
 BR2_OPTIMIZE_2=y
@@ -96,15 +96,15 @@ BR2_PACKAGE_BATOCERA_EXTRAS=y
 BR2_PACKAGE_BATOCERA_TOOLS=y
 BR2_PACKAGE_BATOCERA_ALL_SYSTEMS=y
 BR2_PACKAGE_BATOCERA_LINUX_FIRMWARES=y
-BR2_SYSTEM_BIN_SH_DASH=y # /bin/sh implementation; set here because a `choice` cannot be `select`ed, e.g. from batocera-system/Config.in
-BR2_PACKAGE_DROPBEAR_LOCALOPTIONS_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/dropbear_localoptions.h"
+BR2_SYSTEM_BIN_SH_DASH=y # /bin/sh implementation; set here because a `choice` cannot be `select`ed, e.g. from knulli-system/Config.in
+BR2_PACKAGE_DROPBEAR_LOCALOPTIONS_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/dropbear_localoptions.h"
 
 # Disable generating rootfs tar (speedup)
 BR2_TARGET_ROOTFS_TAR=n
 
 # images
-BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/scripts/post-build-script.sh"
-BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/scripts/post-image-script.sh"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/scripts/post-build-script.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/scripts/post-image-script.sh"
 
 # Batocera
 #BR2_PACKAGE_BATOCERA_DEV=y
@@ -125,8 +125,8 @@ BR2_PACKAGE_BATOCERA_TARGET_RK3568=y
 BR2_TARGET_OPTIMIZATION="-pipe -fsigned-char -mcpu=cortex-a55 -mtune=cortex-a55"
 #BR2_TARGET_GENERIC_GETTY_PORT="tty1"
 BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
-BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/patches"
-BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/anbernic-rgxx3/fsoverlay"
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/patches"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/anbernic-rgxx3/fsoverlay"
 
 # Linux headers same as kernel, a 6.6 series
 BR2_KERNEL_HEADERS_AS_KERNEL=y
@@ -137,16 +137,16 @@ BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_4=y
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="6.4.16"
-BR2_LINUX_KERNEL_PATCH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/linux_patches"
+BR2_LINUX_KERNEL_PATCH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/linux_patches"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/linux-defconfig.config"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/linux-defconfig-fragment.config"
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/linux-defconfig.config"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/linux-defconfig-fragment.config"
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 
 # Build the DTB from the kernel sources
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="rockchip/rk3566-odroid-m1s rockchip/rk3568-rock-3a rockchip/rk3568-odroid-m1 rockchip/rk3566-roc-pc rockchip/rk3566-anbernic-rg353p rockchip/rk3566-anbernic-rg353ps rockchip/rk3566-anbernic-rg353v rockchip/rk3566-anbernic-rg353vs rockchip/rk3566-anbernic-rg503"
-BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/dts/rk3566-rock-3c.dts $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/dts/rk3568-firefly-roc-pc.dts $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/rockchip/rk3568/dts/rk3566-anbernic-rg353v-v2.dts"
+BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/dts/rk3566-rock-3c.dts $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/dts/rk3568-firefly-roc-pc.dts $(BR2_EXTERNAL_BATOCERA_PATH)/board/rockchip/rk3568/dts/rk3566-anbernic-rg353v-v2.dts"
 
 # Bootloader
 BR2_PACKAGE_UBOOT_ROCK_3A=y

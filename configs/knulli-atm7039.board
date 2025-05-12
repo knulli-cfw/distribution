@@ -1,7 +1,7 @@
 include knulli-board.common
 
 # usern
-BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/users.txt"
+BR2_ROOTFS_USERS_TABLES="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/users.txt"
 
 # toolchain definition
 #BR2_GCC_VERSION_12_X=y
@@ -50,13 +50,13 @@ BR2_cortex_a9=y
 BR2_ARM_ENABLE_NEON=y
 BR2_ARM_ENABLE_VFP=y
 
-BR2_GLOBAL_PATCH_DIR="board/batocera/actions/atm7039/rg35xx/patches"
+BR2_GLOBAL_PATCH_DIR="board/actions/atm7039/rg35xx/patches"
 # Linux headers same as kernel, a 3.10 series
 BR2_TOOLCHAIN_OPTIONAL_LINARO_ARM=y
 BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_10=y
 BR2_KERNEL_HEADERS_AS_KERNEL=y
 
-#BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/scripts/post-image-script.sh"
+#BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/scripts/post-image-script.sh"
 
 BR2_LINUX_KERNEL=y
 #BR2_LINUX_KERNEL_CUSTOM_VERSION=y
@@ -101,8 +101,8 @@ BR2_PACKAGE_HOST_GENIMAGE=y
 BR2_PACKAGE_HOST_MTOOLS=y
 
 BR2_PACKAGE_BATOCERA_TARGET_ATM7039=y
-BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/actions/atm7039/rg35xx/patches"
-BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/batocera/actions/atm7039/rg35xx/fsoverlay"
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/patches $(BR2_EXTERNAL_BATOCERA_PATH)/board/actions/atm7039/rg35xx/patches"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BATOCERA_PATH)/board/knulli/fsoverlay $(BR2_EXTERNAL_BATOCERA_PATH)/board/actions/atm7039/rg35xx/fsoverlay"
 
 # Batocera System
 # BR2_PACKAGE_BATOCERA_KODI19=y
