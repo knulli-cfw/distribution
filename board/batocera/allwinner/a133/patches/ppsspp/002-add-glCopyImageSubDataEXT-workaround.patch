@@ -1,0 +1,117 @@
+diff -urN a/Common/GPU/OpenGL/GLFeatures.cpp b/Common/GPU/OpenGL/GLFeatures.cpp
+--- a/Common/GPU/OpenGL/GLFeatures.cpp	2025-05-23 03:47:43.943020514 +0000
++++ b/Common/GPU/OpenGL/GLFeatures.cpp	2025-05-23 03:06:49.782499222 +0000
+@@ -36,6 +36,8 @@
+ #endif
+ #endif
+ 
++PFNGLCOPYIMAGESUBDATAEXTPROC glCopyImageSubDataEXT = nullptr;
++
+ GLExtensions gl_extensions;
+ std::string g_all_gl_extensions;
+ static std::set<std::string> g_set_gl_extensions;
+@@ -388,6 +390,12 @@
+ 	gl_extensions.OES_copy_image = g_set_gl_extensions.count("GL_OES_copy_image") != 0;
+ 	gl_extensions.EXT_copy_image = g_set_gl_extensions.count("GL_EXT_copy_image") != 0;
+ 	gl_extensions.ARB_copy_image = g_set_gl_extensions.count("GL_ARB_copy_image") != 0;
++// Load glCopyImageSubDataEXT if the extension is present
++if (gl_extensions.EXT_copy_image) {
++    glCopyImageSubDataEXT = (PFNGLCOPYIMAGESUBDATAEXTPROC)eglGetProcAddress("glCopyImageSubDataEXT");
++    printf("glCopyImageSubDataEXT = %p\n", (void*)glCopyImageSubDataEXT); // Optional debug
++}
++
+ 	gl_extensions.ARB_buffer_storage = g_set_gl_extensions.count("GL_ARB_buffer_storage") != 0;
+ 	gl_extensions.ARB_vertex_array_object = g_set_gl_extensions.count("GL_ARB_vertex_array_object") != 0;
+ 	gl_extensions.ARB_texture_float = g_set_gl_extensions.count("GL_ARB_texture_float") != 0;
+@@ -442,6 +450,8 @@
+ 			}
+ 		}
+ 
++		glCopyImageSubDataEXT = (PFNGLCOPYIMAGESUBDATAEXTPROC)eglGetProcAddress("glCopyImageSubDataEXT");
++
+ 		if (gl_extensions.NV_framebuffer_blit) {
+ 			glBlitFramebufferNV = (PFNGLBLITFRAMEBUFFERNVPROC)eglGetProcAddress("glBlitFramebufferNV");
+ 		}
+diff -urN a/Common/GPU/OpenGL/GLQueueRunner.cpp b/Common/GPU/OpenGL/GLQueueRunner.cpp
+--- a/Common/GPU/OpenGL/GLQueueRunner.cpp	2024-11-04 16:16:10.000000000 +0000
++++ b/Common/GPU/OpenGL/GLQueueRunner.cpp	2025-05-23 03:11:23.586035076 +0000
+@@ -1446,39 +1453,38 @@
+ 		// TODO: Support depth copies.
+ 		_assert_msg_(false, "Depth copies not yet supported - soon");
+ 		target = GL_RENDERBUFFER;
+-		/*
+-		srcTex = src->depth.texture;
+-		dstTex = src->depth.texture;
+-		*/
++		
++		srcTex = src->color_texture.texture;
++		dstTex = src->color_texture.texture;
++		
+ 		break;
+ 	}
+ 
+-	_dbg_assert_(srcTex);
+-	_dbg_assert_(dstTex);
++    if (glCopyImageSubDataOES) {
++        glCopyImageSubDataOES(
++            srcTex, target, srcLevel, srcRect.x, srcRect.y, srcZ,
++            dstTex, target, dstLevel, dstPos.x, dstPos.y, dstZ,
++            srcRect.w, srcRect.h, depth);    
++    } else if (glCopyImageSubDataEXT) { 
++        glCopyImageSubDataEXT(
++            srcTex, target, srcLevel, srcRect.x, srcRect.y, srcZ,
++            dstTex, target, dstLevel, dstPos.x, dstPos.y, dstZ,
++            srcRect.w, srcRect.h, depth);
++    } else if (gl_extensions.GLES3 || gl_extensions.ARB_framebuffer_object) {
++        // Fallback: use framebuffer blit
++        glBindFramebuffer(GL_READ_FRAMEBUFFER, src->handle);
++        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst->handle);
++        glBlitFramebuffer(
++            srcRect.x, srcRect.y, srcRect.x + srcRect.w, srcRect.y + srcRect.h,
++            dstPos.x, dstPos.y, dstPos.x + srcRect.w, dstPos.y + srcRect.h,
++            GL_COLOR_BUFFER_BIT, GL_NEAREST
++        );
++        // Restore state if needed
++        glBindFramebuffer(GL_FRAMEBUFFER, currentDrawHandle_);
++	} else {
++        printf("No supported copy image extension or function pointer is NULL!\n");
++    }
+ 
+-	_assert_msg_(caps_.framebufferCopySupported, "Image copy extension expected");
+-
+-#if defined(USING_GLES2)
+-#if !PPSSPP_PLATFORM(IOS)
+-	glCopyImageSubDataOES(
+-		srcTex, target, srcLevel, srcRect.x, srcRect.y, srcZ,
+-		dstTex, target, dstLevel, dstPos.x, dstPos.y, dstZ,
+-		srcRect.w, srcRect.h, depth);
+-#endif
+-#else
+-	if (gl_extensions.ARB_copy_image) {
+-		glCopyImageSubData(
+-			srcTex, target, srcLevel, srcRect.x, srcRect.y, srcZ,
+-			dstTex, target, dstLevel, dstPos.x, dstPos.y, dstZ,
+-			srcRect.w, srcRect.h, depth);
+-	} else if (gl_extensions.NV_copy_image) {
+-		// Older, pre GL 4.x NVIDIA cards.
+-		glCopyImageSubDataNV(
+-			srcTex, target, srcLevel, srcRect.x, srcRect.y, srcZ,
+-			dstTex, target, dstLevel, dstPos.x, dstPos.y, dstZ,
+-			srcRect.w, srcRect.h, depth);
+-	}
+-#endif
+ 	CHECK_GL_ERROR_IF_DEBUG();
+ }
+ 
+diff -urN a/Common/GPU/OpenGL/GLQueueRunner.h b/Common/GPU/OpenGL/GLQueueRunner.h
+--- a/Common/GPU/OpenGL/GLQueueRunner.h	2024-11-04 16:16:10.000000000 +0000
++++ b/Common/GPU/OpenGL/GLQueueRunner.h	2025-05-23 03:08:25.734335342 +0000
+@@ -13,6 +13,8 @@
+ #include "Common/Data/Collections/TinySet.h"
+ #include "Common/Data/Collections/FastVec.h"
+ 
++extern PFNGLCOPYIMAGESUBDATAEXTPROC glCopyImageSubDataEXT;
++
+ struct GLRViewport {
+ 	float x, y, w, h, minZ, maxZ;
+ };

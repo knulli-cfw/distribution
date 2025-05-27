@@ -58,7 +58,7 @@ set_output() {
                 fbset -g 480 640 480 1280 32
             elif [ "$BOARD" = "rg-cubexx" ]; then
                 fbset -g 720 720 720 1440 32
-            elif [ "$BOARD" = "rg34xx" ]; then
+            elif [ "$BOARD" = "rg34xx" ] || [ "$BOARD" = "rg34xx-sp" ]; then
                 fbset -g 720 480 720 960 32
             else
                 fbset -g 640 480 640 960 32

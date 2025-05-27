@@ -9,7 +9,7 @@ default:
     smooth:             true
     shaderset:          sharp-bilinear-simple
     rewind:             false
-    bezel:              consoles
+    bezel:              default-knulli
     forceNoBezel:       false
     gamemode_enable:    false
 

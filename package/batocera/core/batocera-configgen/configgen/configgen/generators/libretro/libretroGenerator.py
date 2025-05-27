@@ -51,10 +51,17 @@ class LibretroGenerator(Generator):
                      }
         }
 
+    def get_board_info(self):
+        file_path = "/boot/boot/batocera.board"
+        with open(file_path, 'r') as file:
+            board = file.read().strip()
+        return board
+
     # Main entry of the module
     # Configure retroarch and return a command
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         rom_path = Path(rom)
+        commandEnv={"XDG_CONFIG_HOME":CONFIGS}
 
         # Fix for the removed MESS/MAMEVirtual cores
         if system.config['core'] in [ 'mess', 'mamevirtual' ]:
@@ -141,6 +148,11 @@ class LibretroGenerator(Generator):
 
         # The command to run
         dontAppendROM = False
+        # For flycast cores on the A133 boards, we need to use an older SDL2-2.26 library
+        if system.name == 'dreamcast' or system.name == 'naomi' or system.name == 'naomi2' or system.name == 'atomiswave':
+            board = self.get_board_info()
+            if board == 'trimui-brick' or board == 'trimui-smart-pro':
+                commandEnv["LD_LIBRARY_PATH"] = "/usr/share/flycast"
         # For the NeoGeo CD (lr-fbneo) it is necessary to add the parameter: --subsystem neocd
         if system.name == 'neogeocd' and system.config['core'] == "fbneo":
             commandArray = [RETROARCH_BIN, "-L", retroarchCore, "--subsystem", "neocd", "--config", system.config['configfile']]
@@ -398,7 +410,7 @@ class LibretroGenerator(Generator):
             # a link would work, but on fat32, we need to copy
             commandArray.extend(["-e", system.config['state_slot']])
 
-        return Command.Command(array=commandArray, env={"XDG_CONFIG_HOME":CONFIGS})
+        return Command.Command(array=commandArray, env=commandEnv)
 
 def getGFXBackend(system: Emulator) -> str:
         # Start with the selected option

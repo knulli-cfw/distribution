@@ -2374,6 +2374,9 @@ mpv:
   release:
   hardware: tool
   extensions:
+    - m3u
+    - mp3
+    - flac
     - webm
     - mkv
     - flv

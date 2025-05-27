@@ -2,7 +2,7 @@
 
 # Auto-resumes sleep if resume while lid is closed only for sp
 BOARD=$(cat /boot/boot/batocera.board)
-if [ "$BOARD" != "rg35xx-sp" ]; then
+if [ "$BOARD" != "rg35xx-sp" ] || [ "$BOARD" != "rg34xx-sp" ]; then
     exit 1
 fi
 
