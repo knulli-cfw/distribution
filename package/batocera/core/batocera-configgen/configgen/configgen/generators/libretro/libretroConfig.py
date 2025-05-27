@@ -1330,9 +1330,12 @@ def writeBezelConfig(generator: Generator, bezel: str | None, shaderBezel: bool,
         viewPortUsed = False
 
     gameRatio = float(gameResolution["width"]) / float(gameResolution["height"])
+    bezelRatio = float(infos["width"]) / float(infos["height"])
 
     if viewPortUsed:
-        if gameResolution["width"] != infos["width"] or gameResolution["height"] != infos["height"]:
+        if gameRatio != bezelRatio:
+            return
+        elif gameResolution["width"] != infos["width"] or gameResolution["height"] != infos["height"]:
             bezelNeedAdaptation = True
         retroarchConfig['aspect_ratio_index'] = str(ratioIndexes.index("custom")) # overwritten from the beginning of this file
         if defined('ratio', system.config):
