@@ -23,7 +23,7 @@ do_gamestart() {
     fi
 
 
-    if [ -n "$XBOX_LAYOUT" ]; then
+    if [ -n "$XBOX_LAYOUT" ] && [ "$XBOX_LAYOUT" -eq "1" ]; then
         touch "$XBOX_LAYOUT_FLAG"
     else
         rm -f "$XBOX_LAYOUT_FLAG"
