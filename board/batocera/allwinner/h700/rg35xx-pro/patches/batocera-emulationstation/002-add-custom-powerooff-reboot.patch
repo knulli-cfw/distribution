@@ -1,0 +1,20 @@
+--- a/es-core/src/utils/Platform.cpp	2024-02-07 23:35:12.786035592 +0000
++++ b/es-core/src/utils/Platform.cpp	2024-02-07 23:37:15.749772341 +0000
+@@ -171,7 +171,7 @@
+ #ifdef WIN32 // windows
+ 			return system("shutdown -s -t 0");
+ #else // osx / linux	
+-			return system("shutdown -h now");
++			return system("poweroff.sh");
+ #endif
+ 		}
+ 
+@@ -180,7 +180,7 @@
+ #ifdef WIN32 // windows	
+ 			return system("shutdown -r -t 0");
+ #else // osx / linux	
+-			return system("shutdown -r now");
++			return system("reboot.sh");
+ #endif
+ 		}
+ 

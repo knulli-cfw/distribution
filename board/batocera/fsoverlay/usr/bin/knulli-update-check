@@ -1,0 +1,196 @@
+#!/bin/bash
+
+# Allow environment variables to override defaults for testing
+updateurl="https://updates.knulli.org"
+update_dir="/userdata/system/upgrade"
+log="/userdata/system/logs/knulli.log"
+firmware_sig="/boot/boot/firmware.sig"
+
+# Function to parse JSON response - requires jq
+parse_json_response() {
+    local json_file="$1"
+    local key="$2"
+    
+    # Check if jq is installed
+    if ! command -v jq &> /dev/null; then
+        echo "ERROR: jq is required but not installed"
+        return 1
+    fi
+    
+    # Check if file exists
+    if [ ! -f "$json_file" ]; then
+        return 1
+    fi
+    
+    # Get value using jq
+    value=$(jq -r ".$key" "$json_file")
+    echo "$value"
+    return 0
+}
+
+# Check which update channel to use - set using environment variable for testing
+if [ -n "$TEST_CHANNEL" ]; then
+    upgrade_channel="$TEST_CHANNEL"
+else
+    # In production, use the batocera settings
+    if command -v /usr/bin/batocera-settings-get &> /dev/null; then
+        upgrade_channel="$(/usr/bin/batocera-settings-get updates.type)"
+    else
+        # For testing, default to dev channel
+        upgrade_channel="dev"
+        echo "Using default channel: $upgrade_channel (batocera-settings-get not available)" >&2
+    fi
+fi
+
+# Validate channel
+if test "${upgrade_channel}" != "stable" -a "${upgrade_channel}" != "alpha" -a "${upgrade_channel}" != "dev"; then
+    # force a default value in case the value is removed or miswritten
+    upgrade_channel="dev"
+fi
+
+# Check for custom update URL - set using environment variable for testing
+if [ -n "$TEST_URL" ]; then
+    updateurl="$TEST_URL"
+else
+    # In production, use the batocera settings
+    if command -v /usr/bin/batocera-settings-get &> /dev/null; then
+        settingsupdateurl="$(/usr/bin/batocera-settings-get updates.url)"
+        # customizable upgrade url website
+        if test -n "${settingsupdateurl}"; then
+            updateurl="${settingsupdateurl}"
+        fi
+    else
+        echo "Using default URL: $updateurl (batocera-settings-get not available)" >&2
+    fi
+fi
+
+# Create the update directory if it doesn't exist
+if [ ! -d "$update_dir" ]; then
+        mkdir -p "$update_dir"
+fi
+
+# Function to read firmware metadata from firmware.sig file
+get_firmware_info() {
+    local sig_file="$firmware_sig"
+
+    # Check if firmware.sig file exists
+    if [ ! -f "$sig_file" ]; then
+        echo "ERROR: firmware.sig file not found at $sig_file" >&2
+        return 1
+    fi
+    
+    # Extract the rootfs.squashfs MD5 hash
+    local md5_hash=$(grep "rootfs.squashfs_md5=" "$sig_file" | cut -d'=' -f2)
+    
+    if [ -z "$md5_hash" ]; then
+        echo "ERROR: Could not find rootfs MD5 in firmware.sig" >&2
+        return 1
+    fi
+    
+    # Extract version from metadata section
+    local version=$(grep -A 10 '\[metadata\]' "$sig_file" | grep 'version=' | cut -d'=' -f2 | tr -d '"')
+    
+    if [ -z "$version" ]; then
+        echo "ERROR: Could not find version in firmware.sig" >&2
+        return 1
+    fi
+    
+    # Return both values separated by a delimiter
+    echo "$md5_hash|$version"
+}
+
+# Get current system firmware information
+firmware_info=$(get_firmware_info)
+if [ -z "$firmware_info" ]; then
+    echo "ERROR: Failed to get firmware information" >&2
+    exit 1
+fi
+
+# Parse the MD5 and version
+current_rootfs_md5=$(echo "$firmware_info" | cut -d'|' -f1)
+current_version=$(echo "$firmware_info" | cut -d'|' -f2)
+
+if [ -z "$current_rootfs_md5" ] || [ -z "$current_version" ]; then
+    echo "ERROR: Failed to parse firmware information" >&2
+    exit 1
+fi
+
+echo "Current rootfs MD5: $current_rootfs_md5" >> "$log"
+echo "Current version: $current_version" >> "$log"
+
+# Create JSON payload for API request
+json_data="{\"md5\":\"$current_rootfs_md5\",\"version\":\"$current_version\",\"channel\":\"$upgrade_channel\"}"
+
+# Create update response file path
+response_file="$update_dir/update_response.json"
+
+# Ensure parent directory exists
+mkdir -p "$(dirname "$response_file")" 2>/dev/null || true
+
+# Call the API to check for updates
+if ! curl -s -X POST -H "Content-Type: application/json" \
+    -d "$json_data" \
+    "$updateurl/ota/check" > "$response_file"; then
+        echo "ERROR: Failed to download updates list"
+        exit 2
+fi
+
+# Verify we got valid JSON
+if ! jq empty "$response_file" 2>/dev/null; then
+    echo "ERROR: Invalid JSON response"
+    cat "$response_file"
+    exit 2
+fi
+
+# Check if update is available
+update_available=$(parse_json_response "$update_dir/update_response.json" "update_available")
+if [ "$update_available" != "true" ]; then
+    # Try to get reason
+    reason=$(parse_json_response "$update_dir/update_response.json" "reason")
+    
+    if [ -n "$reason" ]; then
+        echo "No updates available: $reason" | tee -a "$log"
+    else
+        echo "No updates available" | tee -a "$log"
+    fi
+    
+    exit 2
+fi
+
+# Get update version
+update_version=$(parse_json_response "$update_dir/update_response.json" "version")
+
+echo "$update_version"
+
+# Get update URL and MD5
+update_url=$(parse_json_response "$update_dir/update_response.json" "url")
+update_md5=$(parse_json_response "$update_dir/update_response.json" "md5")
+update_build_date=$(parse_json_response "$update_dir/update_response.json" "build_date")
+update_reason=$(parse_json_response "$update_dir/update_response.json" "update_reason")
+
+# Check if patch is available
+patch_available=$(parse_json_response "$update_dir/update_response.json" "patch_available")
+patch_url=""
+if [ "$patch_available" = "true" ]; then
+    patch_url=$(parse_json_response "$update_dir/update_response.json" "patch_url")
+    patch_target_md5=$(parse_json_response "$update_dir/update_response.json" "patch_target_md5")
+fi
+
+# Log found update
+echo "Found update: $update_version (Build date: $update_build_date)" >> "$log"
+echo "  Current version: $current_version" >> "$log"
+echo "  Update reason: ${update_reason:-version_update}" >> "$log"
+if [ "$patch_available" = "true" ]; then
+    echo "  Patch available: Yes (URL: $patch_url)" >> "$log"
+else
+    echo "  Patch available: No" >> "$log"
+fi
+
+# If we have a valid update version and URL
+if [ -n "$update_version" ] && [ -n "$update_url" ]; then
+    # Return success status for update available
+    exit 0
+fi
+
+# No valid update found
+exit 2

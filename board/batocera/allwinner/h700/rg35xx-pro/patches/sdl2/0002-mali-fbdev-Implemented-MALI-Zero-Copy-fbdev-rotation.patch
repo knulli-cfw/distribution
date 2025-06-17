@@ -1,0 +1,1696 @@
+From cff95e49a3d6ef5365ce248a3bbfacffe8e88735 Mon Sep 17 00:00:00 2001
+From: JohnnyonFlame <johnnyonflame@hotmail.com>
+Date: Sat, 27 Apr 2024 03:53:43 -0300
+Subject: [PATCH] mali-fbdev: Implemented MALI Zero-Copy fbdev rotation/scaler.
+
+---
+ src/video/SDL_egl.c                           |   2 +
+ src/video/SDL_egl_c.h                         |   9 +-
+ src/video/mali-fbdev/SDL_maliblitter.c        | 586 ++++++++++++++++++
+ src/video/mali-fbdev/SDL_maliblitter.h        |  55 ++
+ .../mali-fbdev/SDL_maliblitter_egl_funcs.h    |  30 +
+ .../mali-fbdev/SDL_maliblitter_gles_funcs.h   |  60 ++
+ src/video/mali-fbdev/SDL_maliopengles.c       |  52 +-
+ src/video/mali-fbdev/SDL_maliopengles.h       |   3 +-
+ src/video/mali-fbdev/SDL_malivideo.c          | 304 ++++++++-
+ src/video/mali-fbdev/SDL_malivideo.h          |  40 +-
+ src/video/mali-fbdev/ion.h                    | 247 ++++++++
+ src/video/mali-fbdev/mali.h                   |  59 ++
+ 12 files changed, 1407 insertions(+), 40 deletions(-)
+ create mode 100644 src/video/mali-fbdev/SDL_maliblitter.c
+ create mode 100644 src/video/mali-fbdev/SDL_maliblitter.h
+ create mode 100644 src/video/mali-fbdev/SDL_maliblitter_egl_funcs.h
+ create mode 100644 src/video/mali-fbdev/SDL_maliblitter_gles_funcs.h
+ create mode 100644 src/video/mali-fbdev/ion.h
+ create mode 100644 src/video/mali-fbdev/mali.h
+
+diff --git a/src/video/SDL_egl.c b/src/video/SDL_egl.c
+index 47f5e6ee7..9913be03f 100644
+--- a/src/video/SDL_egl.c
++++ b/src/video/SDL_egl.c
+@@ -432,8 +432,10 @@ static int SDL_EGL_LoadLibraryInternal(_THIS, const char *egl_path)
+     LOAD_FUNC(eglGetConfigAttrib);
+     LOAD_FUNC(eglCreateContext);
+     LOAD_FUNC(eglDestroyContext);
++    LOAD_FUNC(eglCreatePixmapSurface);
+     LOAD_FUNC(eglCreatePbufferSurface);
+     LOAD_FUNC(eglCreateWindowSurface);
++    LOAD_FUNC(eglGetCurrentSurface);
+     LOAD_FUNC(eglDestroySurface);
+     LOAD_FUNC(eglMakeCurrent);
+     LOAD_FUNC(eglSwapBuffers);
+diff --git a/src/video/SDL_egl_c.h b/src/video/SDL_egl_c.h
+index feb889a1c..f1f8052b5 100644
+--- a/src/video/SDL_egl_c.h
++++ b/src/video/SDL_egl_c.h
+@@ -68,6 +68,11 @@
+ 
+     EGLBoolean(EGLAPIENTRY *eglDestroyContext) (EGLDisplay dpy, EGLContext ctx);
+ 
++    EGLSurface(EGLAPIENTRY *eglCreatePixmapSurface) (EGLDisplay dpy,
++                                         EGLConfig config,
++                                         NativePixmapType pixmap,
++                                         const EGLint * attrib_list);
++
+     EGLSurface(EGLAPIENTRY *eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
+                                                      EGLint const* attrib_list);
+ 
+@@ -77,6 +82,8 @@
+                                          const EGLint * attrib_list);
+     EGLBoolean(EGLAPIENTRY *eglDestroySurface) (EGLDisplay dpy, EGLSurface surface);
+ 
++    EGLSurface(EGLAPIENTRY *eglGetCurrentSurface) (EGLint readdraw);
++
+     EGLBoolean(EGLAPIENTRY *eglMakeCurrent) (EGLDisplay dpy, EGLSurface draw,
+                                  EGLSurface read, EGLContext ctx);
+ 
+diff --git a/src/video/mali-fbdev/SDL_maliblitter.c b/src/video/mali-fbdev/SDL_maliblitter.c
+new file mode 100644
+index 000000000..e335938a1
+--- /dev/null
++++ b/src/video/mali-fbdev/SDL_maliblitter.c
+@@ -0,0 +1,586 @@
++#include "../../SDL_internal.h"
++
++#if SDL_VIDEO_OPENGL_EGL
++
++#include "SDL.h"
++#include "SDL_egl.h"
++#include "SDL_opengl.h"
++
++#include "SDL_malivideo.h"
++#include "SDL_maliblitter.h"
++
++#define MAX_CONFIGS 128
++
++/* used to simplify code */
++typedef struct mat4 {
++    GLfloat v[16];
++} mat4;
++
++static GLchar* blit_vert_fmt =
++"#version 100\n"
++"varying vec2 vTexCoord;\n"
++"attribute vec2 aVertCoord;\n"
++"attribute vec2 aTexCoord;\n"
++"uniform mat4 uProj;\n"
++"uniform vec2 uTexSize;\n"
++"void main() {\n"
++"   %s\n"
++"   %s\n"
++"   gl_Position = uProj * vec4(aVertCoord, 0.0, 1.0);\n"
++"}";
++
++static GLchar* blit_frag_standard =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec2 vTexCoord;\n"
++"uniform sampler2D uFBOTex;\n"
++"uniform vec2 uTexSize;\n"
++"uniform vec2 uScale;\n"
++"void main() {\n"
++"   gl_FragColor = texture2D(uFBOTex, vTexCoord);\n"
++"}\n";
++
++// Ported from TheMaister's sharp-bilinear-simple.slang
++static GLchar* blit_frag_bilinear_simple =
++"#version 100\n"
++"precision mediump float;\n"
++"varying vec2 vTexCoord;\n"
++"uniform sampler2D uFBOTex;\n"
++"uniform vec2 uTexSize;\n"
++"uniform vec2 uScale;\n"
++"void main() {\n"
++"   vec2 texel_floored = floor(vTexCoord);\n"
++"   vec2 s = fract(vTexCoord);\n"
++"   vec2 region_range = 0.5 - 0.5 / uScale;\n"
++"   vec2 center_dist = s - 0.5;\n"
++"   vec2 f = (center_dist - clamp(center_dist, -region_range, region_range)) * uScale + 0.5;\n"
++"   vec2 mod_texel = texel_floored + f;\n"
++"   gl_FragColor = texture2D(uFBOTex, mod_texel / uTexSize);\n"
++"}\n";
++
++// Ported from Iquilez
++static GLchar* blit_frag_quilez =
++"#version 100\n"
++"precision highp float;\n"
++"varying vec2 vTexCoord;\n"
++"uniform sampler2D uFBOTex;\n"
++"uniform vec2 uTexSize;\n"
++"uniform vec2 uScale;\n"
++"void main() {\n"
++"   vec2 p = vTexCoord + 0.5;\n"
++"   vec2 i = floor(p);\n"
++"   vec2 f = p - i;\n"
++"   f = f*f*f*(f*(f*6.0-15.0)+10.0);\n"
++"   p = i + f;\n"
++"   p = (p - 0.5)/uTexSize;\n"
++"   gl_FragColor = texture2D( uFBOTex, p );\n"
++"}\n";
++
++int MALI_Blitter_CreateContext(_THIS, MALI_Blitter *blitter, NativeWindowType nw)
++{
++    /* max 14 values plus terminator. */
++    EGLint screen_attribs[] = {
++        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
++        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
++        EGL_RED_SIZE, 8,
++        EGL_GREEN_SIZE, 8,
++        EGL_BLUE_SIZE, 8,
++        EGL_ALPHA_SIZE, 8,
++        EGL_DEPTH_SIZE, 0,
++        EGL_STENCIL_SIZE, 0,
++        EGL_NONE
++    };
++
++    EGLint window_attribs[] = {
++        EGL_NONE,
++    };
++
++    EGLint context_attribs[] = {
++        EGL_CONTEXT_CLIENT_VERSION, 2,
++	    EGL_NONE
++    };
++
++    EGLConfig configs[MAX_CONFIGS];
++    EGLint config_chosen, config_count;
++
++    if (!_this->egl_data) {
++        SDL_SetError("EGL not initialized");
++        return 0;
++    }
++    
++    blitter->egl_display = _this->egl_data->egl_display;
++    if (blitter->eglGetConfigs(blitter->egl_display, configs, MAX_CONFIGS, &config_count) == EGL_FALSE) {
++        SDL_EGL_SetError("mali-fbdev: No compatible EGL configs", "eglGetConfigs");
++        return 0;
++    }
++
++    if (!blitter->eglChooseConfig(blitter->egl_display, screen_attribs, configs, MAX_CONFIGS, &config_chosen))
++    {
++        SDL_EGL_SetError("mali-fbdev: Failed to choose an EGL config", "eglChooseConfig");
++        return 0;
++    }
++
++    blitter->gl_context = blitter->eglCreateContext(blitter->egl_display,
++                                      configs[0],
++                                      EGL_NO_CONTEXT, context_attribs);
++    if (blitter->gl_context == EGL_NO_CONTEXT) {
++        SDL_EGL_SetError("mali-fbdev: Could not create EGL context", "eglCreateContext");
++        return 0;
++    }
++
++    blitter->egl_surface = blitter->eglCreateWindowSurface(blitter->egl_display, configs[0], nw, window_attribs);
++    if (blitter->egl_surface == EGL_NO_SURFACE) {
++        SDL_EGL_SetError("mali-fbdev: failed to create window surface", "eglCreateContext");
++        return 0;
++    }
++
++    return 1;
++}
++
++static void
++get_aspect_correct_coords(int viewport[2], int plane[2], int rotation, GLfloat vert[4][4], GLfloat scale[2])
++{
++    /* FIXME: Sorry for the spaghetti! */
++    float aspect_plane, aspect_viewport, ratio_x, ratio_y;
++    int shift_x, shift_y, temp;
++
++    // when sideways, invert plane coords
++    if (rotation & 1) {
++        temp = plane[0];
++        plane[0] = plane[1];
++        plane[1] = temp;
++    }
++
++    // Choose which edge to touch
++    aspect_plane = (float)plane[0] / plane[1];
++    aspect_viewport = (float)viewport[0] / viewport[1];
++
++    if (aspect_viewport > aspect_plane) {
++        // viewport wider than plane
++        ratio_x = plane[0] * (float)((float)viewport[1] / plane[1]);
++        ratio_y = viewport[1];
++        shift_x = (viewport[0] - ratio_x) / 2.0f;
++        shift_y = 0;
++    } else {
++        // plane wider than viewport
++        ratio_x = viewport[0];
++        ratio_y = plane[1] * (float)((float)viewport[0] / plane[0]);
++        shift_x = 0;
++        shift_y = (viewport[1] - ratio_y) / 2.0f;
++    }
++
++    // Instead of normalized UVs, use full texture size.
++    vert[0][2] = (int)(0.0f * plane[0]); vert[0][3] = (int)(0.0f * plane[1]);
++    vert[1][2] = (int)(0.0f * plane[0]); vert[1][3] = (int)(1.0f * plane[1]);
++    vert[2][2] = (int)(1.0f * plane[0]); vert[2][3] = (int)(0.0f * plane[1]);
++    vert[3][2] = (int)(1.0f * plane[0]); vert[3][3] = (int)(1.0f * plane[1]);
++
++    // Get aspect corrected sizes within pixel boundaries
++    vert[0][0] = (int)(0.0f * ratio_x) + shift_x; vert[0][1] = (int)(0.0f * ratio_y) + shift_y;
++    vert[1][0] = (int)(0.0f * ratio_x) + shift_x; vert[1][1] = (int)(1.0f * ratio_y) + shift_y;
++    vert[2][0] = (int)(1.0f * ratio_x) + shift_x; vert[2][1] = (int)(0.0f * ratio_y) + shift_y;
++    vert[3][0] = (int)(1.0f * ratio_x) + shift_x; vert[3][1] = (int)(1.0f * ratio_y) + shift_y;
++
++    // Get scale, for filtering.
++    scale[0] = ratio_x / plane[0];
++    scale[1] = ratio_y / plane[1];
++}
++
++static
++void mat_ortho(float left, float right, float bottom, float top, float Result[4][4])
++{
++    *(mat4*)Result = (mat4){{[0 ... 15] = 0}};
++    Result[0][0] = 2.0f / (right - left);
++    Result[1][1] = 2.0f / (top - bottom);
++    Result[2][2] = -1.0f;
++    Result[3][0] = - (right + left) / (right - left);
++    Result[3][1] = - (top + bottom) / (top - bottom);
++    Result[3][3] = 1.0f;
++}
++
++static void
++MALI_Blitter_GetTexture(_THIS, MALI_Blitter *blitter, MALI_EGL_Surface *surf)
++{
++    /* Define attributes of the EGLImage that will import our dmabuf file descriptor */
++    EGLint attribute_list[] = {
++        EGL_WIDTH, blitter->plane_width,
++        EGL_HEIGHT, blitter->plane_height,
++        EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_XRGB8888,
++        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
++        EGL_DMA_BUF_PLANE0_PITCH_EXT, blitter->plane_pitch,
++        EGL_DMA_BUF_PLANE0_FD_EXT, surf->dmabuf_fd,
++        EGL_NONE
++    };
++
++    /* Now create the EGLImage object. */
++    surf->egl_image = blitter->eglCreateImageKHR(blitter->egl_display,
++        EGL_NO_CONTEXT,
++        EGL_LINUX_DMA_BUF_EXT,
++        (EGLClientBuffer)NULL,
++        attribute_list);
++    if (surf->egl_image == EGL_NO_IMAGE_KHR) {
++        SDL_EGL_SetError("Failed to create Blitter EGL Image", "eglCreateImageKHR");
++        return;
++    }
++
++    /* Create a texture to host our image */
++    blitter->glGenTextures(1, &surf->texture);
++    blitter->glActiveTexture(GL_TEXTURE0);
++    blitter->glBindTexture(GL_TEXTURE_2D, surf->texture);
++    blitter->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
++    blitter->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
++    blitter->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++    blitter->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++
++    /* And populate our texture with the EGLImage */
++    blitter->glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, surf->egl_image);
++}
++
++int
++MALI_InitBlitterContext(_THIS, MALI_Blitter *blitter, SDL_WindowData *windata, NativeWindowType nw, int rotation)
++{
++    char *use_hq_scaler;
++    GLchar msg[2048] = {}, blit_vert[2048] = {};
++    const GLchar *sources[2] = { blit_vert, blit_frag_standard };
++    float scale[2];
++
++    /*
++     * SDL_HQ_SCALER: Selects one of the available scalers:
++     * - 0: Linear filtering
++     * - 1: Sharp Bilinear Simple
++     * - 2: Quilez
++     */
++    if ((use_hq_scaler = SDL_getenv("SDL_HQ_SCALER")) != NULL && *use_hq_scaler != '0') {
++        switch (*use_hq_scaler) {
++            case '1': sources[1] = blit_frag_bilinear_simple; break;
++            case '2': sources[1] = blit_frag_quilez; break;
++            default: use_hq_scaler = NULL; break;
++        }
++    } else {
++        use_hq_scaler = NULL;
++    }
++
++    /* Bail out early if we're already initialized. */
++    if (blitter->initted) {
++        return 1;
++    }
++
++    /* The blitter thread needs to have an OpenGL ES 2.0 context available! */
++    if (!MALI_Blitter_CreateContext(_this, blitter, nw)) {
++        return 0;
++    }
++    
++    if (!blitter->eglMakeCurrent(blitter->egl_display,
++        blitter->egl_surface,
++        blitter->egl_surface,
++        blitter->gl_context))
++    {
++        SDL_EGL_SetError("Unable to make blitter EGL context current", "eglMakeCurrent");
++        return 0;
++    }
++
++    /* Setup vertex shader coord orientation */
++    SDL_snprintf(blit_vert, sizeof(blit_vert), blit_vert_fmt,
++        /* rotation */
++        (rotation == 0) ? "vTexCoord = aTexCoord;" :
++        (rotation == 1) ? "vTexCoord = vec2(aTexCoord.y, -aTexCoord.x);" :
++        (rotation == 2) ? "vTexCoord = vec2(-aTexCoord.x, -aTexCoord.y);" :
++        (rotation == 3) ? "vTexCoord = vec2(-aTexCoord.y, aTexCoord.x);" :
++        "#error Orientation out of scope",
++        /* scalers */
++        (use_hq_scaler) ? "vTexCoord = vTexCoord;"
++                        : "vTexCoord = vTexCoord / uTexSize;");
++
++    /* Compile vertex shader */
++    blitter->vert = blitter->glCreateShader(GL_VERTEX_SHADER);
++    blitter->glShaderSource(blitter->vert, 1, &sources[0], NULL);
++    blitter->glCompileShader(blitter->vert);
++    blitter->glGetShaderInfoLog(blitter->vert, sizeof(msg), NULL, msg);
++    SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "Blitter Vertex Shader Info: %s\n", msg);
++
++    /* Compile the fragment shader */
++    blitter->frag = blitter->glCreateShader(GL_FRAGMENT_SHADER);
++    blitter->glShaderSource(blitter->frag, 1, &sources[1], NULL);
++    blitter->glCompileShader(blitter->frag);
++    blitter->glGetShaderInfoLog(blitter->frag, sizeof(msg), NULL, msg);
++    SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "Blitter Fragment Shader Info: %s\n", msg);
++
++    blitter->prog = blitter->glCreateProgram();
++    blitter->glAttachShader(blitter->prog, blitter->vert);
++    blitter->glAttachShader(blitter->prog, blitter->frag);
++
++    blitter->glLinkProgram(blitter->prog);
++    blitter->loc_aVertCoord = blitter->glGetAttribLocation(blitter->prog, "aVertCoord");
++    blitter->loc_aTexCoord = blitter->glGetAttribLocation(blitter->prog, "aTexCoord");
++    blitter->loc_uFBOtex = blitter->glGetUniformLocation(blitter->prog, "uFBOTex");
++    blitter->loc_uProj = blitter->glGetUniformLocation(blitter->prog, "uProj");
++    blitter->loc_uTexSize = blitter->glGetUniformLocation(blitter->prog, "uTexSize");
++    blitter->loc_uScale = blitter->glGetUniformLocation(blitter->prog, "uScale");
++
++    blitter->glGetProgramInfoLog(blitter->prog, sizeof(msg), NULL, msg);
++    SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "Blitter Program Info: %s\n", msg);
++
++    /* Setup programs */
++    blitter->glUseProgram(blitter->prog);
++    blitter->glUniform1i(blitter->loc_uFBOtex, 0);
++
++    /* Prepare projection and aspect corrected bounds */
++    mat_ortho(0, blitter->viewport_width, 0, blitter->viewport_height, blitter->mat_projection);
++    get_aspect_correct_coords(
++        (int [2]){blitter->viewport_width, blitter->viewport_height},
++        (int [2]){blitter->plane_width, blitter->plane_height},
++        rotation,
++        blitter->vert_buffer_data,
++        scale
++    );
++
++    /* Setup viewport, projection, scale, texture size */
++    blitter->glViewport(0, 0, blitter->viewport_width, blitter->viewport_height);
++    blitter->glUniformMatrix4fv(blitter->loc_uProj, 1, 0, (GLfloat*)blitter->mat_projection);
++    blitter->glUniform2f(blitter->loc_uScale, scale[0], scale[1]);
++    blitter->glUniform2f(blitter->loc_uTexSize, blitter->plane_width, blitter->plane_height);
++
++    /* Generate buffers */
++    blitter->glGenBuffers(1, &blitter->vbo);
++    blitter->glGenVertexArraysOES(1, &blitter->vao);
++
++    /* Populate buffers */
++    blitter->glBindVertexArrayOES(blitter->vao);
++    blitter->glBindBuffer(GL_ARRAY_BUFFER, blitter->vbo);
++    blitter->glEnableVertexAttribArray(blitter->loc_aVertCoord);
++    blitter->glEnableVertexAttribArray(blitter->loc_aTexCoord);
++    blitter->glVertexAttribPointer(blitter->loc_aVertCoord, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(0 * sizeof(float)));
++    blitter->glVertexAttribPointer(blitter->loc_aTexCoord, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
++    blitter->glBufferData(GL_ARRAY_BUFFER, sizeof(blitter->vert_buffer_data), blitter->vert_buffer_data, GL_STATIC_DRAW);
++    
++    for (int i = 0; i < SDL_arraysize(windata->surface); i++) {
++        MALI_Blitter_GetTexture(_this, blitter, &windata->surface[i]);
++    }
++
++    blitter->initted = 1;
++    return 1;
++}
++
++void
++MALI_DeinitBlitterContext(_THIS, MALI_Blitter *blitter)
++{
++    int i;
++    SDL_Window *window;
++    SDL_WindowData *windata;
++
++    /* Delete all texture and related egl objects */
++    if (blitter->window) {
++        window = blitter->window;
++        windata = (SDL_WindowData *)window->driverdata;
++
++        blitter->glBindTexture(GL_TEXTURE_2D, 0);
++        for (i = 0; i < SDL_arraysize(windata->surface); i++) {
++            blitter->glDeleteTextures(1, &windata->surface[i].texture);
++            blitter->eglDestroyImageKHR(blitter->egl_display, windata->surface[i].egl_image);
++        }
++    }
++
++    /* Tear down egl */
++    blitter->eglMakeCurrent(blitter->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
++    blitter->eglDestroySurface(blitter->egl_display, blitter->egl_surface);
++    blitter->eglDestroyContext(blitter->egl_display, blitter->gl_context);
++    blitter->eglReleaseThread();
++
++    blitter->window = NULL;
++    blitter->initted = 0;
++    SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "MALI_BlitterThread: Released thread.\n");
++}
++
++void
++MALI_Blitter_Blit(_THIS, MALI_Blitter *blitter, GLuint texture)
++{
++    /* Simple quad rendering. */
++    blitter->glBindVertexArrayOES(blitter->vao);
++    blitter->glBindTexture(GL_TEXTURE_2D, texture);
++    blitter->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
++}
++
++static void MALI_Blitter_LoadFuncs(MALI_Blitter *blitter)
++{
++    int fail = 0;
++    blitter->egl_obj = SDL_LoadObject("libEGL.so");
++    blitter->gles2_obj = SDL_LoadObject("libGLESv2.so");
++    if (!blitter->egl_obj || !blitter->gles2_obj) {
++        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Failed loading one or more dynamic libraries (%p %p).", blitter->gles2_obj, blitter->egl_obj);
++        SDL_Quit();
++    }
++
++    if ((blitter->eglGetProcAddress = SDL_LoadFunction(blitter->egl_obj, "eglGetProcAddress")) == NULL) {
++        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not locate eglGetProcAddress.");
++        SDL_Quit();
++    }
++
++    /* Attempt to initialize necessary functions */
++    #define SDL_PROC(ret,func,params) \
++        blitter->func = blitter->eglGetProcAddress(#func); \
++        if (blitter->func == NULL) \
++            blitter->func = SDL_LoadFunction(blitter->egl_obj, #func); \
++        if (blitter->func == NULL) \
++        { \
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Failed loading \"%s\".", #func); \
++            fail = 1; \
++        }
++    #include "SDL_maliblitter_egl_funcs.h"
++    #include "SDL_maliblitter_gles_funcs.h"
++    #undef SDL_PROC
++
++    if (fail) {
++        SDL_Quit();
++    }
++}
++
++int MALI_BlitterThread(void *data)
++{
++    int prevSwapInterval = -1;
++    MALI_Blitter *blitter = (MALI_Blitter*)data;
++    _THIS = blitter->_this;
++    SDL_Window *window;
++    SDL_WindowData *windata;
++    SDL_VideoDisplay *display;
++    SDL_DisplayData *dispdata = SDL_GetDisplayDriverData(0);
++    unsigned int page;
++    MALI_EGL_Surface *current_surface;
++    
++    MALI_Blitter_LoadFuncs(blitter);
++
++    /* Signal triplebuf available */
++    SDL_LockMutex(blitter->mutex);
++    SDL_CondSignal(blitter->cond);
++
++    for (;;) {
++        SDL_CondWait(blitter->cond, blitter->mutex);        
++
++        // A thread stop can be either due to reconfigure requested, or due to
++        // SDL teardown, in both cases, we will destroy some resources.
++        if (blitter->thread_stop != 0) {
++            if (blitter->initted) {
++                MALI_DeinitBlitterContext(_this, blitter);
++            }
++
++            // Signal 2 means we want to quit.
++            if (blitter->thread_stop == 2) {
++                break;
++            }
++
++            blitter->thread_stop = 0;
++            continue;
++        }
++
++        window = blitter->window;
++        windata = (SDL_WindowData *)window->driverdata;
++        display = SDL_GetDisplayForWindow(window);
++        dispdata = (SDL_DisplayData *)display->driverdata;
++
++        /* Initialize blitter on the first out frame we have */
++        if (!MALI_InitBlitterContext(_this, blitter, windata, (NativeWindowType)&dispdata->native_display, blitter->rotation))
++        {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Failed to initialize blitter thread");
++            SDL_Quit();
++        }
++
++        if (prevSwapInterval != _this->egl_data->egl_swapinterval) {
++            blitter->eglSwapInterval(blitter->egl_display, _this->egl_data->egl_swapinterval);
++            prevSwapInterval = _this->egl_data->egl_swapinterval;
++        }
++
++        /* Flip the most recent back buffer with the front buffer */
++        page = windata->queued_buffer;
++        windata->queued_buffer = windata->front_buffer;
++        windata->front_buffer = page;
++
++        /* select surface to wait and blit */
++        current_surface = &windata->surface[windata->queued_buffer];
++
++        /* wait for fence and flip display */
++        if (blitter->eglClientWaitSyncKHR(
++            blitter->egl_display,
++            current_surface->egl_fence, 
++            EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, 
++            EGL_FOREVER_NV))
++        {
++            /* Discarding previous data... */
++            blitter->glClear(GL_COLOR_BUFFER_BIT);
++            blitter->glClearColor(0.0, 0.0, 0.0, 1.0);
++
++            /* Perform blitting */
++            MALI_Blitter_Blit(_this, blitter, current_surface->texture);
++
++            /* Perform the final buffer swap. */
++            if (!(blitter->eglSwapBuffers(blitter->egl_display, blitter->egl_surface))) {
++                SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "eglSwapBuffers failed");
++                return 0;
++            }
++        }
++        else
++        {
++            SDL_LogWarn(SDL_LOG_CATEGORY_VIDEO, "Sync %p failed.", current_surface->egl_fence);
++        }
++    }    
++
++    /* Signal thread done */
++    SDL_UnlockMutex(blitter->mutex);
++    return 0;
++}
++
++void MALI_BlitterInit(_THIS, MALI_Blitter *blitter)
++{
++    if (!blitter)
++        return;
++    
++    blitter->thread_stop = 1;
++    blitter->mutex = SDL_CreateMutex();
++    blitter->cond = SDL_CreateCond();
++    blitter->thread = SDL_CreateThread(MALI_BlitterThread, "MALI_BlitterThread", blitter);
++}
++
++void MALI_BlitterReconfigure(_THIS, SDL_Window *window, MALI_Blitter *blitter)
++{
++    SDL_VideoDisplay *display = SDL_GetDisplayForWindow(window);
++    SDL_DisplayData *dispdata = (SDL_DisplayData *)display->driverdata;
++
++    if (!blitter)
++        return;
++
++    /* Flag a reconfigure request */
++    SDL_LockMutex(blitter->mutex);
++    blitter->window = window;
++    blitter->egl_display = _this->egl_data->egl_display;
++    blitter->viewport_width = dispdata->native_display.width,
++    blitter->viewport_height = dispdata->native_display.height,
++    blitter->plane_width = window->w;
++    blitter->plane_height = window->h;
++    blitter->plane_pitch = dispdata->stride;
++    blitter->rotation = dispdata->rotation;
++    blitter->thread_stop = 1;
++
++    /* Signal thread in order to perform stop */
++    SDL_CondSignal(blitter->cond);
++    SDL_UnlockMutex(blitter->mutex);
++}
++
++void MALI_BlitterQuit(MALI_Blitter *blitter)
++{
++    if (blitter == NULL)
++        return;
++
++    /* Flag a stop request */
++    SDL_LockMutex(blitter->mutex);
++    blitter->thread_stop = 2;
++
++    /* Signal thread in order to perform stop */
++    SDL_CondSignal(blitter->cond);
++    SDL_UnlockMutex(blitter->mutex);
++
++    /* Wait and perform teardown */
++    SDL_WaitThread(blitter->thread, NULL);
++    blitter->thread = NULL;
++    SDL_DestroyMutex(blitter->mutex);
++    SDL_DestroyCond(blitter->cond);
++}
++
++#endif /* SDL_VIDEO_OPENGL_EGL */
+\ No newline at end of file
+diff --git a/src/video/mali-fbdev/SDL_maliblitter.h b/src/video/mali-fbdev/SDL_maliblitter.h
+new file mode 100644
+index 000000000..ef6b4ffb6
+--- /dev/null
++++ b/src/video/mali-fbdev/SDL_maliblitter.h
+@@ -0,0 +1,55 @@
++#include "../../SDL_internal.h"
++
++#ifndef _SDL_maliblitter_h
++#define _SDL_maliblitter_h
++
++#if SDL_VIDEO_OPENGL_EGL
++
++#include "../SDL_sysvideo.h"
++#include "../SDL_egl_c.h"
++
++#include "SDL_egl.h"
++#include "SDL_opengl.h"
++
++typedef struct MALI_Blitter {
++    /* OpenGL Surface and Context */
++    _THIS;
++    void *gles2_obj, *egl_obj;
++    EGLSurface *egl_surface;
++    EGLDisplay *egl_display;
++    SDL_GLContext *gl_context;
++    SDL_Window *window;
++    EGLConfig config;
++    GLuint frag, vert, prog, vbo, vao;
++    GLint loc_aVertCoord, loc_aTexCoord, loc_uFBOtex, loc_uProj, loc_uTexSize, loc_uScale;
++    GLsizei viewport_width, viewport_height;
++    GLint plane_width, plane_height, plane_pitch;
++    float mat_projection[4][4];
++    float vert_buffer_data[4][4];
++
++    // Triple buffering thread
++    SDL_mutex *mutex;
++    SDL_cond *cond;
++    SDL_Thread *thread;
++    int thread_stop;
++    int rotation;
++    int next;
++    int initted;
++
++    void *user_data;
++
++    #define SDL_PROC(ret,func,params) ret (APIENTRY *func) params;
++    #include "SDL_maliblitter_egl_funcs.h"
++    #include "SDL_maliblitter_gles_funcs.h"
++    #undef SDL_PROC
++} MALI_Blitter;
++
++extern int MALI_InitBlitterContext(_THIS, MALI_Blitter *blitter, SDL_WindowData *windata, NativeWindowType nw, int rotation);
++extern int MALI_BlitterThread(void *data);
++void MALI_BlitterInit(_THIS, MALI_Blitter *blitter);
++extern void MALI_BlitterReconfigure(_THIS, SDL_Window *window, MALI_Blitter *blitter);
++extern void MALI_BlitterQuit(MALI_Blitter *blitter);
++
++#endif /* SDL_VIDEO_OPENGL_EGL */
++
++#endif /* _SDL_maliblitter_h */
+diff --git a/src/video/mali-fbdev/SDL_maliblitter_egl_funcs.h b/src/video/mali-fbdev/SDL_maliblitter_egl_funcs.h
+new file mode 100644
+index 000000000..f18c66161
+--- /dev/null
++++ b/src/video/mali-fbdev/SDL_maliblitter_egl_funcs.h
+@@ -0,0 +1,30 @@
++SDL_PROC(EGLDisplay, eglGetDisplay, (NativeDisplayType display));
++SDL_PROC(EGLDisplay, eglGetPlatformDisplayEXT, (EGLenum platform, void *native_display, const EGLint *attrib_list));
++SDL_PROC(EGLBoolean, eglInitialize, (EGLDisplay dpy, EGLint * major, EGLint * minor));
++SDL_PROC(EGLBoolean, eglTerminate, (EGLDisplay dpy));
++SDL_PROC(void *, eglGetProcAddress, (const char * procName));
++SDL_PROC(EGLBoolean, eglGetConfigs, (EGLDisplay dpy, EGLConfig * configs, EGLint config_size, EGLint * num_config));
++SDL_PROC(EGLBoolean, eglChooseConfig, (EGLDisplay dpy, const EGLint * attrib_list, EGLConfig * configs, EGLint config_size, EGLint * num_config));
++SDL_PROC(EGLContext, eglCreateContext, (EGLDisplay dpy, EGLConfig config, EGLContext share_list, const EGLint * attrib_list));
++SDL_PROC(EGLBoolean, eglDestroyContext, (EGLDisplay dpy, EGLContext ctx));
++SDL_PROC(EGLImageKHR, eglCreateImageKHR, (EGLDisplay display, EGLContext context, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list));
++SDL_PROC(EGLBoolean, eglDestroyImageKHR, (EGLDisplay dpy, EGLImageKHR image));
++SDL_PROC(EGLSurface, eglCreatePixmapSurface, (EGLDisplay dpy, EGLConfig config, NativePixmapType pixmap, const EGLint * attrib_list));
++SDL_PROC(EGLSurface, eglCreatePbufferSurface, (EGLDisplay dpy, EGLConfig config, EGLint const* attrib_list));
++SDL_PROC(EGLSurface, eglCreateWindowSurface, (EGLDisplay dpy, EGLConfig config, NativeWindowType window, const EGLint * attrib_list));
++SDL_PROC(EGLBoolean, eglDestroySurface, (EGLDisplay dpy, EGLSurface surface));
++SDL_PROC(EGLBoolean, eglMakeCurrent, (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx));
++SDL_PROC(EGLBoolean, eglSwapBuffers, (EGLDisplay dpy, EGLSurface draw));
++SDL_PROC(EGLBoolean, eglSwapInterval, (EGLDisplay dpy, EGLint interval));
++SDL_PROC(const char *, eglQueryString, (EGLDisplay dpy, EGLint name));
++SDL_PROC(EGLenum, eglQueryAPI, (void));
++SDL_PROC(EGLBoolean, eglGetConfigAttrib, (EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint * value));
++SDL_PROC(EGLBoolean, eglWaitNative, (EGLint  engine));
++SDL_PROC(EGLBoolean, eglWaitGL, (void));
++SDL_PROC(EGLBoolean, eglReleaseThread, (void));
++SDL_PROC(EGLBoolean, eglBindAPI, (EGLenum));
++SDL_PROC(EGLint, eglGetError, (void));
++SDL_PROC(EGLSyncKHR, eglCreateSyncKHR, (EGLDisplay dpy, EGLenum type, const EGLint *attrib_list));
++SDL_PROC(EGLBoolean, eglDestroySyncKHR, (EGLDisplay dpy, EGLSyncKHR sync));
++//SDL_PROC(EGLint, eglWaitSyncKHR, (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags));
++SDL_PROC(EGLint, eglClientWaitSyncKHR, (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout));
+diff --git a/src/video/mali-fbdev/SDL_maliblitter_gles_funcs.h b/src/video/mali-fbdev/SDL_maliblitter_gles_funcs.h
+new file mode 100644
+index 000000000..3f0e20689
+--- /dev/null
++++ b/src/video/mali-fbdev/SDL_maliblitter_gles_funcs.h
+@@ -0,0 +1,60 @@
++SDL_PROC(void, glActiveTexture, (GLenum))
++SDL_PROC(void, glAttachShader, (GLuint, GLuint))
++// SDL_PROC(void, glBindAttribLocation, (GLuint, GLuint, const char *))
++SDL_PROC(void, glBindTexture, (GLenum, GLuint))
++// SDL_PROC(void, glBlendEquationSeparate, (GLenum, GLenum))
++// SDL_PROC(void, glBlendFuncSeparate, (GLenum, GLenum, GLenum, GLenum))
++SDL_PROC(void, glClear, (GLbitfield))
++SDL_PROC(void, glClearColor, (GLclampf, GLclampf, GLclampf, GLclampf))
++SDL_PROC(void, glCompileShader, (GLuint))
++SDL_PROC(GLuint, glCreateProgram, (void))
++SDL_PROC(GLuint, glCreateShader, (GLenum))
++SDL_PROC(void, glDeleteProgram, (GLuint))
++SDL_PROC(void, glDeleteShader, (GLuint))
++SDL_PROC(void, glDeleteTextures, (GLsizei, const GLuint *))
++SDL_PROC(void, glDisable, (GLenum))
++SDL_PROC(void, glDisableVertexAttribArray, (GLuint))
++SDL_PROC(void, glDrawArrays, (GLenum, GLint, GLsizei))
++SDL_PROC(void, glEnable, (GLenum))
++SDL_PROC(void, glEnableVertexAttribArray, (GLuint))
++// SDL_PROC(void, glFinish, (void))
++// SDL_PROC(void, glGenFramebuffers, (GLsizei, GLuint *))
++SDL_PROC(void, glGenTextures, (GLsizei, GLuint *))
++// SDL_PROC(const GLubyte *, glGetString, (GLenum))
++SDL_PROC(GLenum, glGetError, (void))
++// SDL_PROC(void, glGetIntegerv, (GLenum, GLint *))
++// SDL_PROC(void, glGetProgramiv, (GLuint, GLenum, GLint *))
++SDL_PROC(void, glGetShaderInfoLog, (GLuint, GLsizei, GLsizei *, char *))
++// SDL_PROC(void, glGetShaderiv, (GLuint, GLenum, GLint *))
++SDL_PROC(GLint, glGetUniformLocation, (GLuint, const char *))
++SDL_PROC(void, glLinkProgram, (GLuint))
++// SDL_PROC(void, glPixelStorei, (GLenum, GLint))
++// SDL_PROC(void, glReadPixels, (GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, GLvoid*))
++// SDL_PROC(void, glScissor, (GLint, GLint, GLsizei, GLsizei))
++// SDL_PROC(void, glShaderBinary, (GLsizei, const GLuint *, GLenum, const void *, GLsizei))
++SDL_PROC(void, glShaderSource, (GLuint, GLsizei, const GLchar* const*, const GLint *))
++// SDL_PROC(void, glTexImage2D, (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *))
++SDL_PROC(void, glTexParameteri, (GLenum, GLenum, GLint))
++// SDL_PROC(void, glTexSubImage2D, (GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *))
++SDL_PROC(void, glUniform1i, (GLint, GLint))
++// SDL_PROC(void, glUniform4f, (GLint, GLfloat, GLfloat, GLfloat, GLfloat))
++SDL_PROC(void, glUniform2f, (GLint, GLfloat, GLfloat))
++SDL_PROC(void, glUniformMatrix4fv, (GLint, GLsizei, GLboolean, const GLfloat *))
++SDL_PROC(void, glUseProgram, (GLuint))
++SDL_PROC(void, glVertexAttribPointer, (GLuint, GLint, GLenum, GLboolean, GLsizei, const void *))
++SDL_PROC(void, glViewport, (GLint, GLint, GLsizei, GLsizei))
++// SDL_PROC(void, glBindFramebuffer, (GLenum, GLuint))
++// SDL_PROC(void, glFramebufferTexture2D, (GLenum, GLenum, GLenum, GLuint, GLint))
++// SDL_PROC(GLenum, glCheckFramebufferStatus, (GLenum))
++// SDL_PROC(void, glDeleteFramebuffers, (GLsizei, const GLuint *))
++SDL_PROC(GLint, glGetAttribLocation, (GLuint, const GLchar *))
++SDL_PROC(void, glGetProgramInfoLog, (GLuint, GLsizei, GLsizei*, GLchar*))
++SDL_PROC(void, glGenBuffers, (GLsizei, GLuint *))
++SDL_PROC(void, glDeleteBuffers, (GLsizei, const GLuint *))
++SDL_PROC(void, glBindBuffer, (GLenum, GLuint))
++SDL_PROC(void, glBufferData, (GLenum, GLsizeiptr, const GLvoid *, GLenum))
++// SDL_PROC(void, glBufferSubData, (GLenum, GLintptr, GLsizeiptr, const GLvoid *))
++SDL_PROC(void, glEGLImageTargetTexture2DOES, (GLenum target, GLeglImageOES image))
++SDL_PROC(void, glBindVertexArrayOES, (GLuint array))
++SDL_PROC(void, glDeleteVertexArraysOES, (GLsizei n, const GLuint *arrays))
++SDL_PROC(void, glGenVertexArraysOES, (GLsizei n, GLuint *arrays))
+diff --git a/src/video/mali-fbdev/SDL_maliopengles.c b/src/video/mali-fbdev/SDL_maliopengles.c
+index 0e4836d2e..f16a2f76f 100644
+--- a/src/video/mali-fbdev/SDL_maliopengles.c
++++ b/src/video/mali-fbdev/SDL_maliopengles.c
+@@ -22,20 +22,64 @@
+ 
+ #if SDL_VIDEO_DRIVER_MALI && SDL_VIDEO_OPENGL_EGL
+ 
+-#include "SDL_maliopengles.h"
+ #include "SDL_malivideo.h"
++#include "SDL_maliopengles.h"
++#include "SDL_maliblitter.h"
+ 
+ /* EGL implementation of SDL OpenGL support */
++void MALI_GLES_DefaultProfileConfig(_THIS, int *mask, int *major, int *minor)
++{
++    /* if SDL was _also_ built with the Raspberry Pi driver (so we're
++       definitely a Pi device), default to GLES2. */
++    *mask = SDL_GL_CONTEXT_PROFILE_ES;
++    *major = 2;
++    *minor = 0;
++}
+ 
+ int
+ MALI_GLES_LoadLibrary(_THIS, const char *path)
+ {
+-    return SDL_EGL_LoadLibrary(_this, path, EGL_DEFAULT_DISPLAY, 0);
++   /* Delay loading this until the very end. */
++   return 0;
++}
++
++int MALI_GLES_SwapWindow(_THIS, SDL_Window * window)
++{
++   int r;
++   unsigned int prev;
++   EGLSurface surf;
++   SDL_WindowData *windowdata;
++   SDL_DisplayData *displaydata = SDL_GetDisplayDriverData(0);
++   MALI_Blitter *blitter = displaydata->blitter;
++
++   if (blitter == NULL)
++      return SDL_EGL_SwapBuffers(_this, ((SDL_WindowData *)window->driverdata)->egl_surface);
++
++   windowdata = (SDL_WindowData*)_this->windows->driverdata;
++
++   SDL_LockMutex(blitter->mutex);
++
++   // First create the necessary fence
++   windowdata->surface[windowdata->back_buffer].egl_fence = _this->egl_data->eglCreateSyncKHR(_this->egl_data->egl_display, EGL_SYNC_FENCE_KHR, NULL);
++
++   // Flip back and front buffers
++   prev = windowdata->front_buffer;
++   windowdata->front_buffer = windowdata->back_buffer;
++   windowdata->back_buffer = prev;
++
++   // Done, update back buffer surfaces
++   surf = windowdata->surface[windowdata->back_buffer].egl_surface;
++   windowdata->egl_surface = surf;
++   r = _this->egl_data->eglMakeCurrent(_this->egl_data->egl_display, surf, surf, _this->current_glctx);
++
++   SDL_CondSignal(blitter->cond);
++   SDL_UnlockMutex(blitter->mutex);
++
++   return (r == EGL_TRUE) ? 0 : SDL_EGL_SetError("Failed to set current surface.", "eglMakeCurrent");
+ }
+ 
+-SDL_EGL_CreateContext_impl(MALI)
+-SDL_EGL_SwapWindow_impl(MALI)
+ SDL_EGL_MakeCurrent_impl(MALI)
++SDL_EGL_CreateContext_impl(MALI)
+ 
+ #endif /* SDL_VIDEO_DRIVER_MALI && SDL_VIDEO_OPENGL_EGL */
+ 
+diff --git a/src/video/mali-fbdev/SDL_maliopengles.h b/src/video/mali-fbdev/SDL_maliopengles.h
+index 121af74f9..3741b88d5 100644
+--- a/src/video/mali-fbdev/SDL_maliopengles.h
++++ b/src/video/mali-fbdev/SDL_maliopengles.h
+@@ -32,14 +32,13 @@
+ #define MALI_GLES_GetAttribute SDL_EGL_GetAttribute
+ #define MALI_GLES_GetProcAddress SDL_EGL_GetProcAddress
+ #define MALI_GLES_UnloadLibrary SDL_EGL_UnloadLibrary
+-#define MALI_GLES_SetSwapInterval SDL_EGL_SetSwapInterval
+-#define MALI_GLES_GetSwapInterval SDL_EGL_GetSwapInterval
+ #define MALI_GLES_DeleteContext SDL_EGL_DeleteContext
+ 
+ extern int MALI_GLES_LoadLibrary(_THIS, const char *path);
+ extern SDL_GLContext MALI_GLES_CreateContext(_THIS, SDL_Window * window);
+ extern int MALI_GLES_SwapWindow(_THIS, SDL_Window * window);
+ extern int MALI_GLES_MakeCurrent(_THIS, SDL_Window * window, SDL_GLContext context);
++extern void MALI_GLES_DefaultProfileConfig(_THIS, int *mask, int *major, int *minor);
+ 
+ #endif /* SDL_VIDEO_DRIVER_MALI && SDL_VIDEO_OPENGL_EGL */
+ 
+diff --git a/src/video/mali-fbdev/SDL_malivideo.c b/src/video/mali-fbdev/SDL_malivideo.c
+index f70ae6431..0024457f1 100644
+--- a/src/video/mali-fbdev/SDL_malivideo.c
++++ b/src/video/mali-fbdev/SDL_malivideo.c
+@@ -23,19 +23,21 @@
+ #if SDL_VIDEO_DRIVER_MALI
+ 
+ /* SDL internals */
++#include "../../events/SDL_events_c.h"
+ #include "../SDL_sysvideo.h"
+-#include "SDL_version.h"
+-#include "SDL_syswm.h"
+-#include "SDL_loadso.h"
+ #include "SDL_events.h"
+-#include "../../events/SDL_events_c.h"
++#include "SDL_loadso.h"
++#include "SDL_syswm.h"
++#include "SDL_hints.h"
++#include "SDL_version.h"
+ 
+ #ifdef SDL_INPUT_LINUXEV
+ #include "../../core/linux/SDL_evdev.h"
+ #endif
+ 
+-#include "SDL_malivideo.h"
+ #include "SDL_maliopengles.h"
++#include "SDL_malivideo.h"
++#include "SDL_maliblitter.h"
+ 
+ 
+ //static int
+@@ -59,7 +61,7 @@ MALI_Create()
+     SDL_VideoDevice *device;
+ 
+     /* Initialize SDL_VideoDevice structure */
+-    device = (SDL_VideoDevice *) SDL_calloc(1, sizeof(SDL_VideoDevice));
++    device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
+     if (device == NULL) {
+         SDL_OutOfMemory();
+         return NULL;
+@@ -82,6 +84,7 @@ MALI_Create()
+     device->SetWindowTitle = MALI_SetWindowTitle;
+     device->SetWindowPosition = MALI_SetWindowPosition;
+     device->SetWindowSize = MALI_SetWindowSize;
++    device->SetWindowFullscreen = MALI_SetWindowFullscreen;
+     device->ShowWindow = MALI_ShowWindow;
+     device->HideWindow = MALI_HideWindow;
+     device->DestroyWindow = MALI_DestroyWindow;
+@@ -96,6 +99,7 @@ MALI_Create()
+     device->GL_GetSwapInterval = MALI_GLES_GetSwapInterval;
+     device->GL_SwapWindow = MALI_GLES_SwapWindow;
+     device->GL_DeleteContext = MALI_GLES_DeleteContext;
++    device->GL_DefaultProfileConfig = MALI_GLES_DefaultProfileConfig;
+ 
+     device->PumpEvents = MALI_PumpEvents;
+ 
+@@ -105,7 +109,7 @@ MALI_Create()
+ VideoBootStrap MALI_bootstrap = {
+     "mali",
+     "Mali EGL Video Driver",
+-//    MALI_Available,
++    //    MALI_Available,
+     MALI_Create
+ };
+ 
+@@ -116,6 +120,7 @@ VideoBootStrap MALI_bootstrap = {
+ int
+ MALI_VideoInit(_THIS)
+ {
++    const char *blitter_status = NULL, *rotation = NULL;
+     SDL_VideoDisplay display;
+     SDL_DisplayMode current_mode;
+     SDL_DisplayData *data;
+@@ -132,6 +137,11 @@ MALI_VideoInit(_THIS)
+         return SDL_SetError("mali-fbdev: Could not open framebuffer device");
+     }
+ 
++    data->ion_fd = open("/dev/ion", O_RDWR, 0);
++    if (data->ion_fd < 0) {
++        return SDL_SetError("mali-fbdev: Could not open ion device");
++    }
++
+     if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
+         MALI_VideoQuit(_this);
+         return SDL_SetError("mali-fbdev: Could not get framebuffer information");
+@@ -205,33 +237,200 @@ MALI_SetDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode)
+     return 0;
+ }
+ 
++static EGLSurface *
++MALI_EGL_InitPixmapSurfaces(_THIS, int width, int height, SDL_WindowData *windowdata, SDL_DisplayData *displaydata)
++{
++    struct ion_fd_data ion_data;
++    struct ion_allocation_data allocation_data;
++    int i, io;
++
++    _this->egl_data->egl_surfacetype = EGL_PIXMAP_BIT;
++    if (SDL_EGL_ChooseConfig(_this) != 0) {
++        SDL_SetError("mali-fbdev: Unable to find a suitable EGL config");
++        return EGL_NO_SURFACE;
++    }
++
++    SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "mali-fbdev: Creating Pixmap (%dx%d) buffers", width, height);
++    if (_this->gl_config.framebuffer_srgb_capable) {
++        {
++            SDL_SetError("mali-fbdev: EGL implementation does not support sRGB system framebuffers");
++            return EGL_NO_SURFACE;
++        }
++    }
++
++    windowdata->back_buffer = 0;
++    windowdata->queued_buffer = 1;
++    windowdata->front_buffer = 2;
++
++    // Populate pixmap definitions
++    displaydata->stride = MALI_ALIGN(width * 4, 64);
++    for (i = 0; i < 3; i++) {
++        MALI_EGL_Surface *surf = &windowdata->surface[i];
++        surf->pixmap = (mali_pixmap){
++            .width = width,
++            .height = height,
++            .planes[0] = (mali_plane){
++                .stride = displaydata->stride,
++                .size = displaydata->stride * height,
++                .offset = 0 },
++            .planes[1] = (mali_plane){},
++            .planes[2] = (mali_plane){},
++            .format = 0,
++            .handles = { -1, -1, -1 },
++            .drm_fourcc = {
++                .dataspace = 0,
++                .format = DRM_FORMAT_ARGB8888,
++                .modifier = 0
++            }
++        };
++
++        /* Allocate framebuffer data */
++        allocation_data = (struct ion_allocation_data){
++            .len = surf->pixmap.planes[0].size,
++            .heap_id_mask = (1 << ION_HEAP_TYPE_DMA),
++            .flags = 1 << ION_FLAG_CACHED
++        };
++
++        io = ioctl(displaydata->ion_fd, ION_IOC_ALLOC, &allocation_data);
++        if (io != 0) {
++            SDL_SetError("mali-fbdev: Unable to create backing ION buffers");
++            return EGL_NO_SURFACE;
++        }
++
++        /* Export DMA_BUF handle for the framebuffer */
++        ion_data = (struct ion_fd_data){
++            .handle = allocation_data.handle
++        };
++
++        io = ioctl(displaydata->ion_fd, ION_IOC_SHARE, &ion_data);
++        if (io != 0) {
++            SDL_SetError("mali-fbdev: Failure exporting ION buffer handle");
++            return EGL_NO_SURFACE;
++        }
++
++        /* Recall fd and handle for teardown later */
++        surf->dmabuf_handle = allocation_data.handle;
++        surf->dmabuf_fd = ion_data.fd;
++        SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "mali-fbdev: Created ION buffer %d (fd: %d)\n", surf->dmabuf_handle, surf->dmabuf_fd);
++
++        /* Create Pixmap Surface using DMA_BUF framebuffer fd */
++        surf->pixmap.handles[0] = ion_data.fd;
++
++        surf->pixmap_handle = displaydata->egl_create_pixmap_ID_mapping(&surf->pixmap);
++        SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "mali-fbdev: Created pixmap handle %p\n", (void *)surf->pixmap_handle);
++        if ((int)surf->pixmap_handle < 0) {
++            SDL_EGL_SetError("mali-fbdev: Unable to create EGL window surface", "egl_create_pixmap_ID_mapping");
++            return EGL_NO_SURFACE;
++        }
++
++        surf->egl_surface = _this->egl_data->eglCreatePixmapSurface(
++            _this->egl_data->egl_display,
++            _this->egl_data->egl_config,
++            surf->pixmap_handle, NULL);
++        if (surf->egl_surface == EGL_NO_SURFACE) {
++            SDL_EGL_SetError("mali-fbdev: Unable to create EGL window surface", "eglCreatePixmapSurface");
++            return EGL_NO_SURFACE;
++        }
++    }
++
++    return windowdata->surface[windowdata->back_buffer].egl_surface;
++}
++
++static void
++MALI_EGL_DeinitPixmapSurfaces(_THIS, SDL_Window *window)
++{
++    SDL_WindowData *data;
++    SDL_DisplayData *displaydata;
++    EGLSurface current_surface;
++    EGLContext current_context;
++
++    data = window->driverdata;
++    displaydata = SDL_GetDisplayDriverData(0);
++    if (!displaydata->blitter)
++        return;
++
++    MALI_BlitterReconfigure(_this, window, displaydata->blitter);
++    
++    // Disable current surface
++    current_context = (EGLContext)SDL_GL_GetCurrentContext();
++    current_surface = _this->egl_data->eglGetCurrentSurface(EGL_DRAW);
++
++    for (int i = 0; i < SDL_arraysize(data->surface); i++) {
++        struct ion_handle_data handle_data;
++        if (data->surface[i].dmabuf_fd < 0)
++            continue;
++
++        if ((current_surface != EGL_NO_SURFACE) && (data->surface[i].egl_surface == current_surface)) {
++            SDL_EGL_MakeCurrent(_this, EGL_NO_SURFACE, current_context);
++            current_surface = EGL_NO_SURFACE;
++        }
++
++        SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "MALI_DestroyWindow: Destroying surface %d.", i);
++        _this->egl_data->eglDestroySurface(_this->egl_data->egl_display, data->surface[i].egl_surface);
++        displaydata->egl_destroy_pixmap_ID_mapping(data->surface[i].pixmap_handle);
++        close(data->surface[i].dmabuf_fd);
++
++        handle_data = (struct ion_handle_data){
++            .handle = data->surface[i].dmabuf_handle
++        };
++
++        ioctl(displaydata->ion_fd, ION_IOC_FREE, &handle_data);
++        data->surface[i].dmabuf_fd = -1;
++    }
++}
++
+ int
+ MALI_CreateWindow(_THIS, SDL_Window * window)
+ {
+     SDL_WindowData *windowdata;
++    SDL_VideoDisplay *display = SDL_GetDisplayForWindow(window);
+     SDL_DisplayData *displaydata;
+ 
+     displaydata = SDL_GetDisplayDriverData(0);
+ 
+     /* Allocate window internal data */
+-    windowdata = (SDL_WindowData *) SDL_calloc(1, sizeof(SDL_WindowData));
++    windowdata = (SDL_WindowData *)SDL_calloc(1, sizeof(SDL_WindowData));
+     if (windowdata == NULL) {
+         return SDL_OutOfMemory();
+     }
+ 
+-    /* Windows have one size for now */
+-    window->w = displaydata->native_display.width;
+-    window->h = displaydata->native_display.height;
++    /* Use the entire screen when the blitter isn't enabled */
++    if (displaydata->blitter) {
++        SDL_SendWindowEvent(window, SDL_WINDOWEVENT_RESIZED,
++                            display->current_mode.w, display->current_mode.h);
++    }
+ 
+     /* OpenGL ES is the law here */
+     window->flags |= SDL_WINDOW_OPENGL;
+-
+     if (!_this->egl_data) {
+-        if (SDL_GL_LoadLibrary(NULL) < 0) {
+-            return -1;
++        if (SDL_EGL_LoadLibrary(_this, NULL, EGL_DEFAULT_DISPLAY, 0) < 0) {
++            /* Try again with OpenGL ES 2.0 */
++            _this->gl_config.profile_mask = SDL_GL_CONTEXT_PROFILE_ES;
++            _this->gl_config.major_version = 2;
++            _this->gl_config.minor_version = 0;
++            if (SDL_EGL_LoadLibrary(_this, NULL, EGL_DEFAULT_DISPLAY, 0) < 0) {
++                return SDL_SetError("Can't load EGL/GL library on window creation.");
++            }
+         }
++
++        _this->gl_config.driver_loaded = 1;
++    }
++
++    /* If the blitter is required, we will manually create the EGL Surface resources using the ION allocator
++       and some reverse engineered mali internals */
++    if (displaydata->blitter) {
++        displaydata->egl_create_pixmap_ID_mapping = SDL_EGL_GetProcAddress(_this, "egl_create_pixmap_ID_mapping");
++        displaydata->egl_destroy_pixmap_ID_mapping = SDL_EGL_GetProcAddress(_this, "egl_destroy_pixmap_ID_mapping");
++        if (!displaydata->egl_create_pixmap_ID_mapping || !displaydata->egl_destroy_pixmap_ID_mapping) {
++            MALI_VideoQuit(_this);
++            return SDL_SetError("mali-fbdev: Can't find mali pixmap entrypoints");
++        }
++
++        windowdata->egl_surface = MALI_EGL_InitPixmapSurfaces(_this, window->w, window->h, windowdata, displaydata);
++        MALI_BlitterReconfigure(_this, window, displaydata->blitter);
++    } else {
++        windowdata->egl_surface = SDL_EGL_CreateSurface(_this, (NativeWindowType) &displaydata->native_display);
+     }
+-    windowdata->egl_surface = SDL_EGL_CreateSurface(_this, (NativeWindowType) &displaydata->native_display);
+ 
+     if (windowdata->egl_surface == EGL_NO_SURFACE) {
+         MALI_VideoQuit(_this);
+@@ -249,13 +448,13 @@ MALI_CreateWindow(_THIS, SDL_Window * window)
+     return 0;
+ }
+ 
+-void
+-MALI_DestroyWindow(_THIS, SDL_Window * window)
++void MALI_DestroyWindow(_THIS, SDL_Window *window)
+ {
+     SDL_WindowData *data;
+-
+     data = window->driverdata;
++    
+     if (data) {
++        MALI_EGL_DeinitPixmapSurfaces(_this, window);
+         if (data->egl_surface != EGL_NO_SURFACE) {
+             SDL_EGL_DestroySurface(_this, data->egl_surface);
+             data->egl_surface = EGL_NO_SURFACE;
+@@ -278,6 +477,34 @@ MALI_SetWindowPosition(_THIS, SDL_Window * window)
+ void
+ MALI_SetWindowSize(_THIS, SDL_Window * window)
+ {
++    SDL_WindowData *windowdata;
++    SDL_DisplayData *displaydata;
++
++    windowdata = window->driverdata;
++    displaydata = SDL_GetDisplayDriverData(0);
++
++    // If we're using the blitter, we need to warn it about the surface reconfiguration!
++    if (displaydata->blitter) {
++        MALI_EGL_DeinitPixmapSurfaces(_this, window);
++        windowdata->egl_surface = MALI_EGL_InitPixmapSurfaces(_this, window->w, window->h, windowdata, displaydata);
++        MALI_BlitterReconfigure(_this, window, displaydata->blitter);
++    }
++}
++
++void
++MALI_SetWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, SDL_bool fullscreen)
++{
++    if (fullscreen) {
++        // Remember that SDL_SendWindowEvent sets the window width and height for you, so let's
++        // recall the width and height first.
++        int prev_w = window->w, prev_h = window->h;
++        SDL_SendWindowEvent(window, SDL_WINDOWEVENT_RESIZED,
++            display->current_mode.w, display->current_mode.h);
++
++        // If size has changed, let's reconfigure it.
++        if (display->current_mode.w != prev_w || display->current_mode.h != prev_h)
++            MALI_SetWindowSize(_this, window);
++    }
+ }
+ 
+ void
+@@ -290,6 +517,25 @@ MALI_HideWindow(_THIS, SDL_Window * window)
+ {
+ }
+ 
++int
++MALI_GLES_SetSwapInterval(_THIS, int interval)
++{
++    if (!_this->egl_data)
++        return 0;
++
++    _this->egl_data->egl_swapinterval = interval != 0;
++    return 0;
++}
++
++int
++MALI_GLES_GetSwapInterval(_THIS)
++{
++    if (!_this->egl_data)
++        return 0;
++
++    return _this->egl_data->egl_swapinterval;
++}
++
+ /*****************************************************************************/
+ /* SDL Window Manager function                                               */
+ /*****************************************************************************/
+@@ -300,7 +546,7 @@ MALI_GetWindowWMInfo(_THIS, SDL_Window * window, struct SDL_SysWMinfo *info)
+         return SDL_TRUE;
+     } else {
+         SDL_SetError("application not compiled with SDL %d.%d\n",
+-            SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
++                     SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
+     }
+ 
+     /* Failed to get window manager information */
+diff --git a/src/video/mali-fbdev/SDL_malivideo.h b/src/video/mali-fbdev/SDL_malivideo.h
+index 175483a88..3fad6e795 100644
+--- a/src/video/mali-fbdev/SDL_malivideo.h
++++ b/src/video/mali-fbdev/SDL_malivideo.h
+@@ -26,27 +26,56 @@
+ #include "../SDL_sysvideo.h"
+ 
+ #include "SDL_egl.h"
++#include "SDL_opengl.h"
++#include "mali.h"
+ 
+ #include <EGL/egl.h>
+ #include <linux/vt.h>
+ #include <linux/fb.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#include <sys/ioctl.h>
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <stdlib.h>
+ 
++#include "mali.h"
++#include "ion.h"
++
+ typedef struct SDL_DisplayData
+ {
+-    struct {
+-        unsigned short width;
+-        unsigned short height;
+-    } native_display;
++    int ion_fd;
++    struct MALI_Blitter *blitter;
++    fbdev_window_s native_display;
++    int rotation;
++    unsigned long stride;
++    unsigned long w_align;
++    unsigned long h_align;
++    NativePixmapType (*egl_create_pixmap_ID_mapping)(mali_pixmap *);
++    NativePixmapType (*egl_destroy_pixmap_ID_mapping)(int id);
+ } SDL_DisplayData;
+ 
++typedef struct MALI_EGL_Surface
++{
++    // A pixmap is backed by multiple ION allocated backbuffers, EGL fences, etc.
++    EGLImageKHR egl_image;
++    GLuint texture;
++    EGLSyncKHR egl_fence;
++    EGLSurface egl_surface;
++    NativePixmapType pixmap_handle;
++    mali_pixmap pixmap;
++    int dmabuf_fd;
++    int dmabuf_handle;
++} MALI_EGL_Surface;
++
+ typedef struct SDL_WindowData
+ {
+     EGLSurface egl_surface;
++    int back_buffer;
++    int queued_buffer;
++    int front_buffer;
++
++    MALI_EGL_Surface surface[3];
+ } SDL_WindowData;
+ 
+ /****************************************************************************/
+@@ -62,9 +91,12 @@ int MALI_CreateWindow(_THIS, SDL_Window * window);
+ void MALI_SetWindowTitle(_THIS, SDL_Window * window);
+ void MALI_SetWindowPosition(_THIS, SDL_Window * window);
+ void MALI_SetWindowSize(_THIS, SDL_Window * window);
++void MALI_SetWindowFullscreen(_THIS, SDL_Window * window, SDL_VideoDisplay * display, SDL_bool fullscreen);
+ void MALI_ShowWindow(_THIS, SDL_Window * window);
+ void MALI_HideWindow(_THIS, SDL_Window * window);
+ void MALI_DestroyWindow(_THIS, SDL_Window * window);
++int MALI_GLES_SetSwapInterval(_THIS, int interval);
++int MALI_GLES_GetSwapInterval(_THIS);
+ 
+ /* Window manager function */
+ SDL_bool MALI_GetWindowWMInfo(_THIS, SDL_Window * window,
+diff --git a/src/video/mali-fbdev/ion.h b/src/video/mali-fbdev/ion.h
+new file mode 100644
+index 000000000..83397080f
+--- /dev/null
++++ b/src/video/mali-fbdev/ion.h
+@@ -0,0 +1,247 @@
++/*
++ * drivers/staging/android/uapi/ion.h
++ *
++ * Copyright (C) 2011 Google, Inc.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#ifndef _UAPI_LINUX_ION_H
++#define _UAPI_LINUX_ION_H
++
++#define CONFIG_AMLOGIC_MODIFY
++
++#include <linux/ioctl.h>
++#include <linux/types.h>
++
++typedef int ion_user_handle_t;
++
++/**
++ * enum ion_heap_types - list of all possible types of heaps
++ * @ION_HEAP_TYPE_SYSTEM:	 memory allocated via vmalloc
++ * @ION_HEAP_TYPE_SYSTEM_CONTIG: memory allocated via kmalloc
++ * @ION_HEAP_TYPE_CARVEOUT:	 memory allocated from a prereserved
++ *				 carveout heap, allocations are physically
++ *				 contiguous
++ * @ION_HEAP_TYPE_DMA:		 memory allocated via DMA API
++ * @ION_NUM_HEAPS:		 helper for iterating over heaps, a bit mask
++ *				 is used to identify the heaps, so only 32
++ *				 total heap types are supported
++ */
++enum ion_heap_type {
++	ION_HEAP_TYPE_SYSTEM,
++	ION_HEAP_TYPE_SYSTEM_CONTIG,
++	ION_HEAP_TYPE_CARVEOUT,
++	ION_HEAP_TYPE_CHUNK,
++	ION_HEAP_TYPE_DMA,
++	ION_HEAP_TYPE_CUSTOM, /*
++			       * must be last so device specific heaps always
++			       * are at the end of this enum
++			       */
++};
++
++#define ION_NUM_HEAP_IDS		(sizeof(unsigned int) * 8)
++
++/**
++ * allocation flags - the lower 16 bits are used by core ion, the upper 16
++ * bits are reserved for use by the heaps themselves.
++ */
++
++/*
++ * mappings of this buffer should be cached, ion will do cache maintenance
++ * when the buffer is mapped for dma
++ */
++#define ION_FLAG_CACHED 1
++
++/*
++ * mappings of this buffer will created at mmap time, if this is set
++ * caches must be managed manually
++ */
++#define ION_FLAG_CACHED_NEEDS_SYNC 2
++
++/**
++ * DOC: Ion Userspace API
++ *
++ * create a client by opening /dev/ion
++ * most operations handled via following ioctls
++ *
++ */
++
++/**
++ * struct ion_allocation_data - metadata passed from userspace for allocations
++ * @len:		size of the allocation
++ * @align:		required alignment of the allocation
++ * @heap_id_mask:	mask of heap ids to allocate from
++ * @flags:		flags passed to heap
++ * @handle:		pointer that will be populated with a cookie to use to
++ *			refer to this allocation
++ *
++ * Provided by userspace as an argument to the ioctl
++ */
++struct ion_allocation_data {
++	size_t len;
++	size_t align;
++	unsigned int heap_id_mask;
++	unsigned int flags;
++	ion_user_handle_t handle;
++};
++
++/**
++ * struct ion_fd_data - metadata passed to/from userspace for a handle/fd pair
++ * @handle:	a handle
++ * @fd:		a file descriptor representing that handle
++ *
++ * For ION_IOC_SHARE or ION_IOC_MAP userspace populates the handle field with
++ * the handle returned from ion alloc, and the kernel returns the file
++ * descriptor to share or map in the fd field.  For ION_IOC_IMPORT, userspace
++ * provides the file descriptor and the kernel returns the handle.
++ */
++struct ion_fd_data {
++	ion_user_handle_t handle;
++	int fd;
++};
++
++/**
++ * struct ion_handle_data - a handle passed to/from the kernel
++ * @handle:	a handle
++ */
++struct ion_handle_data {
++	ion_user_handle_t handle;
++};
++
++/**
++ * struct ion_custom_data - metadata passed to/from userspace for a custom ioctl
++ * @cmd:	the custom ioctl function to call
++ * @arg:	additional data to pass to the custom ioctl, typically a user
++ *		pointer to a predefined structure
++ *
++ * This works just like the regular cmd and arg fields of an ioctl.
++ */
++struct ion_custom_data {
++	unsigned int cmd;
++	unsigned long arg;
++};
++
++#define MAX_HEAP_NAME			32
++
++/**
++ * struct ion_heap_data - data about a heap
++ * @name - first 32 characters of the heap name
++ * @type - heap type
++ * @heap_id - heap id for the heap
++ */
++struct ion_heap_data {
++	char name[MAX_HEAP_NAME];
++	__u32 type;
++	__u32 heap_id;
++	__u32 reserved0;
++	__u32 reserved1;
++	__u32 reserved2;
++};
++
++/**
++ * struct ion_heap_query - collection of data about all heaps
++ * @cnt - total number of heaps to be copied
++ * @heaps - buffer to copy heap data
++ */
++struct ion_heap_query {
++	__u32 cnt; /* Total number of heaps to be copied */
++	__u32 reserved0; /* align to 64bits */
++	__u64 heaps; /* buffer to be populated */
++	__u32 reserved1;
++	__u32 reserved2;
++};
++
++#define ION_IOC_MAGIC		'I'
++
++/**
++ * DOC: ION_IOC_ALLOC - allocate memory
++ *
++ * Takes an ion_allocation_data struct and returns it with the handle field
++ * populated with the opaque handle for the allocation.
++ */
++#define ION_IOC_ALLOC		_IOWR(ION_IOC_MAGIC, 0, \
++				      struct ion_allocation_data)
++
++/**
++ * DOC: ION_IOC_FREE - free memory
++ *
++ * Takes an ion_handle_data struct and frees the handle.
++ */
++#define ION_IOC_FREE		_IOWR(ION_IOC_MAGIC, 1, struct ion_handle_data)
++
++/**
++ * DOC: ION_IOC_MAP - get a file descriptor to mmap
++ *
++ * Takes an ion_fd_data struct with the handle field populated with a valid
++ * opaque handle.  Returns the struct with the fd field set to a file
++ * descriptor open in the current address space.  This file descriptor
++ * can then be used as an argument to mmap.
++ */
++#define ION_IOC_MAP		_IOWR(ION_IOC_MAGIC, 2, struct ion_fd_data)
++
++/**
++ * DOC: ION_IOC_SHARE - creates a file descriptor to use to share an allocation
++ *
++ * Takes an ion_fd_data struct with the handle field populated with a valid
++ * opaque handle.  Returns the struct with the fd field set to a file
++ * descriptor open in the current address space.  This file descriptor
++ * can then be passed to another process.  The corresponding opaque handle can
++ * be retrieved via ION_IOC_IMPORT.
++ */
++#define ION_IOC_SHARE		_IOWR(ION_IOC_MAGIC, 4, struct ion_fd_data)
++
++/**
++ * DOC: ION_IOC_IMPORT - imports a shared file descriptor
++ *
++ * Takes an ion_fd_data struct with the fd field populated with a valid file
++ * descriptor obtained from ION_IOC_SHARE and returns the struct with the handle
++ * filed set to the corresponding opaque handle.
++ */
++#define ION_IOC_IMPORT		_IOWR(ION_IOC_MAGIC, 5, struct ion_fd_data)
++
++/**
++ * DOC: ION_IOC_SYNC - syncs a shared file descriptors to memory
++ *
++ * Deprecated in favor of using the dma_buf api's correctly (syncing
++ * will happen automatically when the buffer is mapped to a device).
++ * If necessary should be used after touching a cached buffer from the cpu,
++ * this will make the buffer in memory coherent.
++ */
++#define ION_IOC_SYNC		_IOWR(ION_IOC_MAGIC, 7, struct ion_fd_data)
++
++/**
++ * DOC: ION_IOC_CUSTOM - call architecture specific ion ioctl
++ *
++ * Takes the argument of the architecture specific ioctl to call and
++ * passes appropriate userdata for that ioctl
++ */
++#define ION_IOC_CUSTOM		_IOWR(ION_IOC_MAGIC, 6, struct ion_custom_data)
++
++/**
++ * DOC: ION_IOC_HEAP_QUERY - information about available heaps
++ *
++ * Takes an ion_heap_query structure and populates information about
++ * available Ion heaps.
++ */
++#define ION_IOC_HEAP_QUERY     _IOWR(ION_IOC_MAGIC, 8, \
++					struct ion_heap_query)
++
++#ifdef CONFIG_AMLOGIC_MODIFY
++/**
++ * DOC: ION_IOC_INVALID_CACHE - invalid cache before
++ * cpu read the memory and after device write the memory.
++ * this will make the buffer in memory coherent.
++ */
++#define ION_IOC_INVALID_CACHE	_IOWR(ION_IOC_MAGIC, 9, struct ion_fd_data)
++#endif
++
++#endif /* _UAPI_LINUX_ION_H */
+diff --git a/src/video/mali-fbdev/mali.h b/src/video/mali-fbdev/mali.h
+new file mode 100644
+index 000000000..c7df119d1
+--- /dev/null
++++ b/src/video/mali-fbdev/mali.h
+@@ -0,0 +1,59 @@
++/*
++ * Copyright (C) 2017 João H. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ */
++
++#ifndef __MALI_H__
++#define __MALI_H__
++
++#include <stdint.h>
++
++#define fourcc_code(a, b, c, d) ((__u32)(a) | ((__u32)(b) << 8) | \
++				 ((__u32)(c) << 16) | ((__u32)(d) << 24))
++
++#define DRM_FORMAT_ARGB8888	fourcc_code('A', 'R', '2', '4')
++#define DRM_FORMAT_XRGB8888	fourcc_code('X', 'R', '2', '4')
++
++
++#define MALI_ALIGN(val, align)  (((val) + (align) - 1) & ~((align) - 1))
++#define MALI_FORMAT_ARGB8888       (0x10bb60a)
++
++typedef struct fbdev_window_s
++{
++	unsigned short width;
++	unsigned short height;
++} fbdev_window_s;
++
++typedef struct mali_plane {
++    unsigned long stride;
++    unsigned long size;
++    unsigned long offset;
++} mali_plane;
++
++typedef struct mali_pixmap {
++    int width, height; 
++
++    mali_plane planes[3];
++
++    uint64_t format; //see 0x004e3c28...
++    int handles[3]; //seems to just be fds, see 0x004ec14c...
++    struct
++    {
++        uint32_t format; // drm_fourcc
++        uint64_t modifier; // afbc etc
++        uint32_t dataspace; // colorspace definitions e.g. bt709, srgb, etc
++    } drm_fourcc; // apparently an alternative to setting the format field?
++                  // set .format = 0 and fill this if available on your blob.
++} mali_pixmap;
++
++#endif /* __MALI_H__ */
+\ No newline at end of file
+-- 
+2.20.1
+

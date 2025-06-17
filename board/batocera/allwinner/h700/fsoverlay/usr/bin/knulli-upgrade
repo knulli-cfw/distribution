@@ -1,0 +1,499 @@
+#!/bin/bash
+
+# Check for updates in the firmware signature file
+# This script compares firmware signature files and identifies files that need updating
+# 
+# Notes: 
+# * Time to calculate md5sum of the rootfs on device is about 1.5 minutes
+# * Time to patch rootfs with xdelta3 is about... 
+# * Since the file that changes in every update is the rootfs, we will use its md5 to name the upgrade file
+# * For the rootfs xdelta3, we will use the md5 of the origin rootfs file as its name (<md5>.xdelta3), which is batocera.update
+
+arch_name=$(cat /usr/share/batocera/batocera.arch)
+board_name=$(cat /boot/boot/batocera.board)
+LIVING_SIG="/boot/boot/firmware.sig"
+UPDATE_SIG="/userdata/system/upgrade/${board_name}/firmware.sig"
+UPDATE_DIR="/userdata/system/upgrade"
+UPDATE_SERVER="https://updates.knulli.org"
+upgrade_channel=dev
+
+# Function to parse INI-style signature file
+parse_signature() {
+    local file="$1"
+    local section=""
+    
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^#.*$ ]] || [[ -z "$line" ]] && continue
+        
+        # Check for section headers
+        if [[ "$line" =~ ^\[(.+)\]$ ]]; then
+            section="${BASH_REMATCH[1]}"
+            continue
+        fi
+        
+        # Parse key=value pairs in partitions section
+        if [[ "$section" == "partitions" && "$line" =~ ^(.+)=(.+)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+            echo "$key=$value"
+        fi
+    done < "$file"
+}
+
+# Function to extract a value from an INI-style file
+get_ini_value() {
+    local file="$1"
+    local section="$2"
+    local key="$3"
+    local current_section=""
+    
+    # Check if file exists
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+    
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^#.*$ ]] || [[ -z "$line" ]] && continue
+        
+        # Check for section headers
+        if [[ "$line" =~ ^\[(.+)\]$ ]]; then
+            current_section="${BASH_REMATCH[1]}"
+            continue
+        fi
+        
+        # If we're in the correct section, look for the key
+        if [[ "$current_section" == "$section" && "$line" =~ ^${key}=(.+)$ ]]; then
+            # Return the value (strip quotes if present)
+            local value="${BASH_REMATCH[1]}"
+            value="${value#\"}"  # Remove leading quote if present
+            value="${value%\"}"  # Remove trailing quote if present
+            echo "$value"
+            return 0
+        fi
+    done < "$file"
+    
+    # Key not found
+    return 1
+}
+
+# Function to verify MD5 checksum
+verify_checksum() {
+    local file="$1"
+    local expected_md5="$2"
+    local actual_md5=$(md5sum "$file" | cut -d' ' -f1)
+    
+    if [ "$actual_md5" = "$expected_md5" ]; then
+        return 0
+    else
+        echo "ERROR: Checksum mismatch for $file"
+        echo "  Expected: $expected_md5"
+        echo "  Actual:   $actual_md5"
+        return 1
+    fi
+}
+
+download_file() {
+    local url="$1"
+    local output="$2"
+    
+    if ! wget -q -O "$output" "$url"; then
+        echo "ERROR: Failed to download $url"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to update specific partition
+update_partition() {
+    local partition="$1"
+    local update_file="$UPDATE_DIR/$board_name/$partition"
+    local expected_md5="${update_partitions[${partition}_md5]}"
+    
+    echo "Updating partition: $partition"
+    
+    # Verify checksum before writing
+    if ! verify_checksum "$update_file" "$expected_md5"; then
+        echo "ERROR: Failed to verify checksum for $update_file"
+        return 1
+    fi
+    
+    case "$partition" in
+        "boot0.img")
+            echo "  Writing boot0.img to /dev/mmcblk0 at seek=8 bs=1024"
+            if dd if="$update_file" of=/dev/mmcblk0 seek=8 bs=1024 conv=fsync; then
+                echo "  boot0.img updated successfully"
+            else
+                echo "ERROR: Failed to write boot0.img"
+                return 1
+            fi
+            ;;
+        "boot_package.fex")
+            echo "  Writing boot_package.fex to /dev/mmcblk0 at seek=16400 bs=1024"
+            if dd if="$update_file" of=/dev/mmcblk0 seek=16400 bs=1024 conv=fsync; then
+                echo "  boot_package.fex updated successfully"
+            else
+                echo "ERROR: Failed to write boot_package.fex"
+                return 1
+            fi
+            ;;
+        "boot.img")
+            echo "  Writing boot.img to /dev/mmcblk0p1"
+            if dd if="$update_file" of=/dev/mmcblk0p1 conv=fsync; then
+                echo "  boot.img updated successfully"
+            else
+                echo "ERROR: Failed to write boot.img"
+                return 1
+            fi
+            ;;
+        "env.img")
+            echo "  Writing env.img to /dev/mmcblk0p2"
+            if dd if="$update_file" of=/dev/mmcblk0p2 conv=fsync; then
+                echo "  env.img updated successfully"
+            else
+                echo "ERROR: Failed to write env.img"
+                return 1
+            fi
+            ;;
+        "batocera.update")
+            echo "  Updating batocera.update - requires system preparation"
+            
+            # Remount /boot as read-write
+            echo "    Remounting /boot as read-write..."
+            if ! mount -o rw,remount /boot; then
+                echo "ERROR: Failed to remount /boot as read-write"
+                return 1
+            fi
+
+            # Copy new batocera.update over the existing one
+            echo "    Copying new batocera.update to /boot/boot/batocera..."
+            if cp "$update_file" /boot/boot/batocera.update; then
+                echo "    batocera.update copied successfully"
+            else
+                echo "ERROR: Failed to copy batocera.update"
+                # Try to remount /boot as read-only on failure
+                mount -o ro,remount /boot 2>/dev/null
+                return 1
+            fi
+            
+            # Sync filesystem changes
+            echo "    Syncing filesystem..."
+            sync
+
+            echo "    batocera.update update completed - reboot required"
+            ;;
+        *)
+            echo "ERROR: Unknown partition type: $partition"
+            return 1
+            ;;
+    esac
+    
+    return 0
+}
+
+# Function to update firmware signature file
+update_signature_file() {
+    echo "Updating firmware signature file..."
+    
+    # Create backup of current signature
+    if cp "$LIVING_SIG" "${LIVING_SIG}.backup"; then
+        echo "  Created backup: ${LIVING_SIG}.backup"
+    else
+        echo "WARNING: Failed to create backup of signature file"
+    fi
+    
+    # Replace with new signature
+    if cp "$UPDATE_SIG" "$LIVING_SIG"; then
+        echo "  Updated signature file successfully"
+        return 0
+    else
+        echo "ERROR: Failed to update signature file"
+        # Restore backup if update failed
+        if [ -f "${LIVING_SIG}.backup" ]; then
+            cp "${LIVING_SIG}.backup" "$LIVING_SIG"
+            echo "  Restored backup signature file"
+        fi
+        return 1
+    fi
+}
+
+######################
+# Script starts here #
+######################
+
+# First check if we have the upgrade folder, otherwise exit
+if [ ! -d "$UPDATE_DIR" ]; then mkdir -p "$UPDATE_DIR"; fi
+
+# Then let's check first whether we have an update file there
+# The update files follow the format knulli_architecture_md5.tar.gz
+# e.g. nulli_h700_b25a216101d0521216bf3ded0c63c4d8.tar.gz
+# Get metadata for the update
+
+update_filename="$(ls "$UPDATE_DIR" | grep -E "^knulli_${arch_name}_[a-f0-9]+\.tar\.gz$" | head -n 1)"
+if [ -z "$update_filename" ]; then
+    echo "No update file found in $UPDATE_DIR"
+    # Let's try to download the update. For that we need to 
+    # check if the update server is reachable
+    echo "Attempting to download update file from $UPDATE_SERVER"
+
+    # Download the update list
+    echo "Downloading updates list from $UPDATE_SERVER/updates.ini"
+    if ! wget -q -O "$UPDATE_DIR/updates.ini" "$UPDATE_SERVER/updates.ini"; then
+        echo "ERROR: Failed to download updates list"
+        exit 1
+    fi
+
+    # Check for updates in the updates.ini file
+    echo "Checking for available updates..."
+    
+    # Get the current channel (default to stable if not specified)
+    if [ -z "$upgrade_channel" ]; then
+        upgrade_channel="stable"
+    fi
+    
+    # Get the latest update file for this channel and board
+    latest_update=$(get_ini_value "$UPDATE_DIR/updates.ini" "$upgrade_channel" "latest")
+    update_version=$(get_ini_value "$UPDATE_DIR/updates.ini" "$upgrade_channel" "version")
+    
+    if [ -z "$latest_update" ]; then
+        echo "ERROR: No update information found for channel $upgrade_channel"
+        exit 1
+    fi
+    
+    echo "Latest update available: $latest_update"
+    echo "Update version: $update_version"
+    
+    # Download the update file
+    echo "Downloading update file from $UPDATE_SERVER/$upgrade_channel/$latest_update" 1
+    if ! wget -q -O "$UPDATE_DIR/$latest_update" "$UPDATE_SERVER/$upgrade_channel/$latest_update"; then
+        echo "ERROR: Failed to download update file"
+        exit 1
+    fi
+    
+    # Check the corresponding md5 from the updates.ini
+    update_md5=$(get_ini_value "$UPDATE_DIR/updates.ini" "$upgrade_channel" "md5")
+    
+    # Verify the checksum
+    echo "Verifying update file checksum..."
+    if ! verify_checksum "$UPDATE_DIR/$latest_update" "$update_md5"; then
+        echo "ERROR: Checksum verification failed"
+        exit 1
+    fi
+    
+    # Update the filename variable for later use
+    update_filename="$latest_update"
+    echo "Update file downloaded and verified successfully: $update_filename"
+else
+    echo "Local update file found: $update_filename"
+fi
+
+# Extract the update file to the update directory
+echo "Extracting update file..."
+tar --no-same-owner -xzf "$UPDATE_DIR/$update_filename" -C "$UPDATE_DIR" --strip-components=1
+
+# Check if the update signature file exists
+if [ ! -f "$UPDATE_SIG" ]; then
+    echo "Update firmware signature not found: $UPDATE_SIG"
+    exit 1
+else
+    echo "Update firmware signature found: $UPDATE_SIG"
+    echo "Update version: $(get_ini_value "$UPDATE_SIG" "metadata" "version")"
+fi
+
+update_board_name=$(get_ini_value "$UPDATE_SIG" "metadata" "board")
+
+# Check if we have the correct board
+if [ "$board_name" != "$update_board_name" ]; then
+    echo "ERROR: Board name mismatch."
+    echo "Current board: $board_name"
+    echo "Update board: $update_board_name"
+    echo "Installation aborted."
+    exit 1
+fi
+
+# Flag to track if this is an older installation without signature
+older_installation=false
+older_rootfs_md5=""
+
+if [ ! -f "$LIVING_SIG" ]; then
+    echo "Current firmware signature not found: $LIVING_SIG"
+    # Assume this is an older system without a living signature
+    # We will treat it as needing an update
+    echo "Older installation detected, assuming update is needed."
+    echo "Calculating md5 of the existing rootfs..."
+    # Calculate md5 of the existing rootfs
+    older_rootfs_md5=$(md5sum /boot/boot/batocera | cut -d' ' -f1)
+    # Set a flag to indicate this
+    older_installation=true
+else 
+    echo "Current firmware signature found: $LIVING_SIG"
+    older_rootfs_md5=$(get_ini_value "$LIVING_SIG" "partitions" "rootfs.squashfs_md5")
+    echo "Current rootfs MD5: $older_rootfs_md5"
+fi
+
+# Skip version comparison for older installations
+if [ "$older_installation" = false ]; then
+    # Compare versions first
+    living_version=$(get_ini_value "$LIVING_SIG" "metadata" "version")
+    update_version=$(get_ini_value "$UPDATE_SIG" "metadata" "version")
+
+    echo "Current version: $living_version"
+    echo "Update version: $update_version"
+
+    if [ "$living_version" = "$update_version" ]; then
+        echo "Firmware is up to date. No update needed."
+        exit 12
+    fi
+else
+    # For older installations, we always update
+    echo "Older installation without version information. Update required."
+    update_version=$(get_ini_value "$UPDATE_SIG" "metadata" "version")
+    echo "Update version: $update_version"
+fi
+
+echo "Firmware versions differ. Checking individual partitions..."
+
+# Parse partition information from both files
+declare -A living_partitions
+declare -A update_partitions
+
+# Parse update signature (needed for both paths)
+while IFS='=' read -r key value; do
+    # Skip rootfs.squashfs partition since we handle it differently
+    if [[ "$key" =~ ^rootfs\.squashfs(_md5|_size)?$ ]]; then
+        continue
+    fi
+    update_partitions["$key"]="$value"
+done < <(parse_signature "$UPDATE_SIG")
+
+files_to_update=()
+
+if [ "$older_installation" = true ]; then
+    # For older installations without a signature file, assume all partitions need updating
+    echo "Older installation detected - will update all partitions."
+    
+    # Add all partitions from update signature to the update list
+    for key in "${!update_partitions[@]}"; do
+        # Only process MD5 entries
+        if [[ "$key" =~ (.+)_md5$ ]]; then
+            partition_name="${BASH_REMATCH[1]}"
+            files_to_update+=("$partition_name")
+            echo "Will update partition: $partition_name"
+        fi
+    done
+else
+    # Normal flow for systems with signature file
+    # Parse current signature
+    while IFS='=' read -r key value; do
+        # Skip rootfs.squashfs partition since we handle it differently
+        if [[ "$key" =~ ^rootfs\.squashfs(_md5|_size)?$ ]]; then
+            continue
+        fi
+        living_partitions["$key"]="$value"
+    done < <(parse_signature "$LIVING_SIG")
+
+    # Find partitions that need updating
+    for key in "${!update_partitions[@]}"; do
+        # Only check MD5 hashes (ignore size entries)
+        if [[ "$key" =~ (.+)_md5$ ]]; then
+            partition_name="${BASH_REMATCH[1]}"
+            if [ "${living_partitions[$key]}" != "${update_partitions[$key]}" ]; then
+                files_to_update+=("$partition_name")
+                echo "Partition $partition_name needs update:"
+                echo "  Current MD5: ${living_partitions[$key]}"
+                echo "  Update MD5:  ${update_partitions[$key]}"
+            fi
+        fi
+    done
+fi
+
+if [ ${#files_to_update[@]} -eq 0 ]; then
+    echo "No partitions need to be updated."
+fi
+
+# If we arrived here, we have partitions to update
+echo ""
+echo "Partitions to update: ${files_to_update[*]}"
+
+# Verify update files exist before proceeding
+missing_files=()
+for partition in "${files_to_update[@]}"; do
+    update_file="$UPDATE_DIR/$board_name/$partition"
+    if [ ! -f "$update_file" ]; then
+        missing_files+=("$update_file")
+    fi
+done
+
+if [ ${#missing_files[@]} -gt 0 ]; then
+    echo "Error: Missing update files:"
+    printf '  %s\n' "${missing_files[@]}"
+    exit 1
+fi
+
+echo "All required update files found."
+echo ""
+echo "Starting firmware update..."
+
+# Update each partition
+update_failed=false
+rootfs_updated=false
+for partition in "${files_to_update[@]}"; do
+    echo "Processing partition: $partition"
+    if ! update_partition "$partition"; then
+        echo "ERROR: Failed to update partition: $partition"
+        update_failed=true
+        break
+    fi
+    
+    # Track if rootfs was updated
+    if [ "$partition" = "batocera.update" ]; then
+        rootfs_updated=true
+    fi
+done
+
+# Patch rootfs 
+echo "Patching rootfs with xdelta3..."
+
+# Check if we have a patch file for the current rootfs
+patch_file="$UPDATE_DIR/${older_rootfs_md5}.xdelta3"
+if [ ! -f $patch_file ]; then
+    echo "ERROR: Patch file not found for rootfs: $patch_file"
+    echo "Update may not be compatible with this rootfs."
+    echo "Stopping update process."
+    exit 1
+else
+    echo "Applying patch: $patch_file"
+    # remount /boot as read-write
+    mount -o rw,remount /boot
+    if ! xdelta3 -d -s /boot/boot/batocera "$patch_file" /boot/boot/batocera.update; then
+        echo "ERROR: Failed to apply patch to rootfs"
+        update_failed=true
+    else
+        echo "Rootfs patched successfully."
+    fi
+
+    # Copy the updated firmware.sig to /boot
+    cp $UPDATE_DIR/${board_name}/firmware.sig /boot/boot/firmware.sig
+
+    # remount /boot as read-only
+    mount -o ro,remount /boot
+fi
+
+if [ "$update_failed" = true ]; then
+    echo ""
+    echo "ERROR: Firmware update failed. System may be in an inconsistent state."
+    echo "Please check the device and consider recovery procedures."
+    exit 1
+fi
+
+# If we reach here, all partitions were updated successfully
+echo ""
+echo "All partitions updated successfully"
+echo "Rebooting system to apply changes..."
+sleep 2
+sync
+reboot
+
+exit 0

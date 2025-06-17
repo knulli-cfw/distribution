@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Start ADB or MTP (mass storage) over USB via configfs
+#
+
+product=$(cat /sys/firmware/devicetree/base/model 2>/dev/null | tr -d '\0' | sed -e s+"[^A-Za-z0-9]"+"_"+g)
+GADGET=/sys/kernel/config/usb_gadget/g1
+
+case "$1" in
+  start)
+    usbmode=$(/usr/bin/batocera-settings-get system.usbmode)
+    if [ -z "$usbmode" ] || [ "$usbmode" = "off" ]; then
+      "$0" stop
+      exit 1
+    fi
+
+    # UDC: get the first available UDC device
+    UDC=$(ls /sys/class/udc | head -n 1)
+    if [ -z "$UDC" ]; then
+        echo "No UDC found. Exiting."
+        exit 1
+    fi
+
+    if [ "$usbmode" = "adb" ]; then
+      printf "Starting adb daemon: "
+
+        printf "Starting adb daemon: "
+
+        mount -t configfs none /sys/kernel/config
+        mkdir -p /sys/kernel/config/usb_gadget/g1
+        #USB 2.0
+        echo 0x0200 > /sys/kernel/config/usb_gadget/g1/bcdUSB
+        #Instantiate English strings
+        mkdir -p /sys/kernel/config/usb_gadget/g1/strings/0x409
+        echo 1 > /sys/kernel/config/usb_gadget/g1/os_desc/use 1
+
+        #Configure VID/PID/ProductName/Serial (replace with your vid/pid)
+        echo "0x1d6b" > /sys/kernel/config/usb_gadget/g1/idVendor
+        echo "0x0104" > /sys/kernel/config/usb_gadget/g1/idProduct
+        echo "0123456789" > /sys/kernel/config/usb_gadget/g1/strings/0x409/serialnumber
+        echo "Foo Inc" > /sys/kernel/config/usb_gadget/g1/strings/0x409/manufacturer
+        echo "Bar Prod" >  /sys/kernel/config/usb_gadget/g1/strings/0x409/product
+
+        #Create Function(s) Instance(s)
+        mkdir -p /sys/kernel/config/usb_gadget/g1/functions/ffs.adb
+        mkdir -p /sys/kernel/config/usb_gadget/g1/configs/b.1
+        mkdir -p /sys/kernel/config/usb_gadget/g1/configs/b.1/strings/0x409
+        echo "ffs.adb" > /sys/kernel/config/usb_gadget/g1/configs/b.1/strings/0x409/configuration
+
+        #Bind functions
+        ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.adb /sys/kernel/config/usb_gadget/g1/configs/b.1
+
+        mkdir -p /dev/usb-ffs
+        mkdir -p /dev/usb-ffs/adb
+        mount -t functionfs adb /dev/usb-ffs/adb
+
+        #Start adbd daemon
+        start-stop-daemon --start --background --oknodo --quiet --exec /usr/bin/adbd
+
+        echo 0x1 > /sys/kernel/config/usb_gadget/g1/os_desc/b_vendor_code
+
+        #Attach created gadget device to the UDC driver
+        #UDC driver name obtained from "ls /sys/class/udc/"
+        sleep 2
+        echo "$UDC" > /sys/kernel/config/usb_gadget/g1/UDC
+        [ $? = 0 ] && echo "OK" || echo "FAIL"
+    fi
+    ;;
+  stop)
+    printf "Stopping usb-gadget: "
+    # kill adbd if running
+    killall -9 adbd 2>/dev/null
+    # unbind gadget
+    if [ -d $GADGET ]; then
+      echo "" > $GADGET/UDC
+      umount /sys/kernel/config
+      rm -rf $GADGET
+    fi
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+    ;;
+  restart|reload)
+    "$0" stop
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

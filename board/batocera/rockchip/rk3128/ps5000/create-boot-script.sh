@@ -24,4 +24,9 @@ cp "${BINARIES_DIR}/rootfs.squashfs"    "${BATOCERA_BINARIES_DIR}/boot/boot/bato
 cp "${BINARIES_DIR}/rk3128-ps5000.dtb"     "${BATOCERA_BINARIES_DIR}/boot/boot/"     || exit 1
 cp "${BOARD_DIR}/boot/extlinux.conf"    "${BATOCERA_BINARIES_DIR}/boot/extlinux/" || exit 1
 
+# Create empty swap partition
+truncate -s 1024M "${BATOCERA_BINARIES_DIR}/swap.img"
+chmod 0600 "${BATOCERA_BINARIES_DIR}/swap.img"
+mkswap "${BATOCERA_BINARIES_DIR}/swap.img"
+
 exit 0

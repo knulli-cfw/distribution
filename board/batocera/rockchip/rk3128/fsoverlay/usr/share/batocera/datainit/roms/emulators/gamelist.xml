@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<gameList>
+    <game>
+        <path>./PPSSPP.sh</path>
+        <name>PPSSPP</name>
+        <desc>A standalone emulator for PlayStation Portable (PSP).</desc>
+        <image>./images/ppsspp-image.png</image>
+        <thumbnail>./images/ppsspp-logo.png</thumbnail>
+        <marquee>./images/ppsspp-logo.png</marquee>
+        <genre>Emulator</genre>
+        <lang>en</lang>
+    </game>
+    <game>
+        <path>./ScummVM.sh</path>
+        <name>ScummVM</name>
+        <desc>A framework for running several classic point and click adventures.</desc>
+        <image>./images/scummvm-image.png</image>
+        <thumbnail>./images/scummvm-logo.png</thumbnail>
+        <marquee>./images/scummvm-logo.png</marquee>
+        <genre>Emulator</genre>
+        <lang>en</lang>
+    </game>
+</gameList>

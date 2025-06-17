@@ -10,6 +10,11 @@ OS_VERSION=$(cat /usr/share/batocera/batocera.version)
 SOC_DEVICE=$(cat /usr/share/batocera/batocera.arch)
 HW_DEVICE=$(cat /sys/firmware/devicetree/base/model 2>/dev/null | tr -d '\0' | sed -e s+"[^A-Za-z0-9]"+"_"+g)
 
+# Temporary workaround for A133/H700 devices without modified DTB
+if [ $HW_DEVICE = "sun50iw10" ] || [ $HW_DEVICE = "sun50iw9" ]; then
+        HW_DEVICE=$(cat /boot/boot/batocera.board)
+fi
+
 # Extract the date and time parts
 VERSION_DATE=$(echo "$OS_VERSION" | awk '{print $2}')
 VERSION_TIME=$(echo "$OS_VERSION" | awk '{print $3}')
