@@ -58,16 +58,14 @@ def writeControllersConfig(retroconfig: UnixSettings, system: Emulator, controll
 
         if system.isOptSet(hotkey_var):
             custom_input = system.config[hotkey_var]
-            if custom_input == "none":
-                if key in custom_specials:
-                    del custom_specials[key]
-                continue
 
+            # Lets make sure the user didn't try to use the same custom hotkey input to multiple actions
             for existing_key, existing_action in list(custom_specials.items()):
                 if existing_key == custom_input and existing_action != default_action:
                     del custom_specials[existing_key]
 
             custom_specials[custom_input] = default_action
+            # Now lets make sure there's no conflicts between custom and original default specials (this allows auto correcting hotkeys that are left on "auto")
             if key != custom_input and key in custom_specials and custom_specials[key] == default_action:
                 del custom_specials[key]
 
