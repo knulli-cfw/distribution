@@ -161,7 +161,7 @@ case "${ACTION}" in
         ;;
 
     test)
-        aplay "/usr/share/sounds/Mallet.wav" || exit 1
+        aplay "/usr/share/sounds/stereo-test.wav" || exit 1
         ;;
     *)
         do_usage "$(basename "$0")"
