@@ -1,0 +1,10 @@
+--- a/src/libcec/env.h.in	2020-07-13 10:18:33.000000000 +0000
++++ b/src/libcec/env.h.in	2024-03-07 13:40:13.460286138 +0000
+@@ -80,7 +80,6 @@
+ #cmakedefine HAVE_EXYNOS_API @HAVE_EXYNOS_API@
+ 
+ /* Define to 1 for Linux support */
+-#cmakedefine HAVE_LINUX_API @HAVE_LINUX_API@
+ 
+ /* Define to 1 for AOCEC support */
+ #cmakedefine HAVE_AOCEC_API @HAVE_AOCEC_API@

@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# The Powkiddy V90s uses a different set of kernel modules
+# If we are booting one up, mount bind its modules over the regular 4.9.191
+BOARD=$(cat /boot/boot/batocera.board)
+if [ "$BOARD" = "powkiddy-v90s" ]; then
+	mount -o bind /lib/modules/4.9.191_v90s /lib/modules/4.9.191
+fi
+
 # We need the graphics module in order to use SDL since we are
 # using the sdl-compat/SDL2 for rendering
 cd /lib/modules/4.9.191

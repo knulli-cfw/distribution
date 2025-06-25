@@ -1,0 +1,12 @@
+--- a/es-core/src/utils/Platform.cpp	2023-11-24 06:55:19.000000000 +0000
++++ b/es-core/src/utils/Platform.cpp	2024-01-26 16:13:30.299581930 +0000
+@@ -402,6 +402,9 @@
+ 				auto files = Utils::FileSystem::getDirContent("/sys/class/power_supply");
+ 				for (auto file : files)
+ 				{
++					if ((Utils::String::toLower(file).find("/axp2202") != std::string::npos) && (batteryRootPath.empty()))
++						batteryRootPath = file;
++
+ 					if ((Utils::String::toLower(file).find("/bat") != std::string::npos) && (batteryRootPath.empty()))
+ 						batteryRootPath = file;
+ 

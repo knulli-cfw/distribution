@@ -1,0 +1,219 @@
+state.audiocodec {
+	control.1 {
+		iface MIXER
+		name 'codec hub mode'
+		value hub_enable
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 hub_disable
+			item.1 hub_enable
+		}
+	}
+	control.2 {
+		iface MIXER
+		name 'DAC Swap'
+		value On
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Off
+			item.1 On
+		}
+	}
+	control.3 {
+		iface MIXER
+		name 'ADC Swap'
+		value Off
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Off
+			item.1 On
+		}
+	}
+	control.4 {
+		iface MIXER
+		name 'digital volume'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 63'
+			dbmin -7424
+			dbmax -116
+			dbvalue.0 -7424
+		}
+	}
+	control.5 {
+		iface MIXER
+		name 'MIC1 gain volume'
+		value 31
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 31'
+			dbmin 0
+			dbmax 3100
+			dbvalue.0 3100
+		}
+	}
+	control.6 {
+		iface MIXER
+		name 'MIC2 gain volume'
+		value 31
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 31'
+			dbmin 0
+			dbmax 3100
+			dbvalue.0 3100
+		}
+	}
+	control.7 {
+		iface MIXER
+		name 'LINEOUT volume'
+		value 26
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 31'
+			dbmin -9999999
+			dbmax 0
+			dbvalue.0 -750
+		}
+	}
+	control.8 {
+		iface MIXER
+		name 'DAC volume'
+		value.0 0
+		value.1 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			dbmin -11925
+			dbmax 7200
+			dbvalue.0 -11925
+			dbvalue.1 -11925
+		}
+	}
+	control.9 {
+		iface MIXER
+		name 'ADC volume'
+		value.0 160
+		value.1 160
+		comment {
+			access 'read write'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			dbmin -11925
+			dbmax 7200
+			dbvalue.0 75
+			dbvalue.1 75
+		}
+	}
+	control.10 {
+		iface MIXER
+		name 'Headphone Volume'
+		value 2
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 7'
+			dbmin -4200
+			dbmax 0
+			dbvalue.0 -3000
+		}
+	}
+	control.11 {
+		iface MIXER
+		name 'LINEOUT Output Select'
+		value DAC_SINGLE
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 DAC_SINGLE
+			item.1 DAC_DIFFER
+		}
+	}
+	control.12 {
+		iface MIXER
+		name 'ADCL Input MIC1 Boost Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.13 {
+		iface MIXER
+		name 'ADCR Input MIC2 Boost Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.14 {
+		iface MIXER
+		name 'Headphone Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.15 {
+		iface MIXER
+		name 'HpSpeaker Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.16 {
+		iface MIXER
+		name 'LINEOUT Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.17 {
+		iface MIXER
+		name 'Soft Volume Master'
+		value.0 190
+		value.1 190
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '0000000100000008ffffec1400000014'
+			dbmin -5100
+			dbmax 0
+			dbvalue.0 -1300
+			dbvalue.1 -1300
+		}
+	}
+}

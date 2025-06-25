@@ -6,7 +6,7 @@ case $1 in
     start)
 	if [ "$BOARD" = "trimui-smart-pro" ]; then 
 		trimui_inputd_smart_pro &
-	else
+	elif [ "$BOARD" = "trimui-brick" ]; then
 		trimui_inputd_brick &
 	fi
 	;;
