@@ -9,7 +9,7 @@ LOCK_FILE="/var/run/lid-control.lock"
 
 exec 200>"${LOCK_FILE}"
 if ! flock -n 200; then
-    exit 1
+    exit 0
 fi
 
 trap 'flock -u 200;' EXIT
@@ -31,7 +31,7 @@ display_off() {
 
 suspend_system() {
     pm-is-supported --suspend && pm-suspend
-    sleep 2
+    sleep 1
 }
 
 shutdown_system() {
@@ -71,6 +71,9 @@ case "$1" in
         ;;
     close)
         do_close
+        ;;
+    *)
+        exit 0
         ;;
 esac
 
