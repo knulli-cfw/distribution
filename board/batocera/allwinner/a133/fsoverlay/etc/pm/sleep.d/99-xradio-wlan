@@ -8,11 +8,17 @@ fi
 
 case "${1}" in
    suspend)
+      # Disable USB & Bluetooth
+      echo 'usb1' | tee /sys/bus/usb/drivers/usb/unbind
+      bluetoothctl power off
       # Disable xradio Wi-Fi drivers
       rfkill block wifi
       rmmod xradio_wlan
       ;;
    thaw|resume)
+      # Re-enable USB & Bluetooth
+      echo 'usb1' | tee /sys/bus/usb/drivers/usb/bind
+      bluetoothctl power on
       # Re-enable xradio Wi-Fi drivers
       if [ "$BOARD" = "trimui-smart-pro" ]; then
         insmod /lib/modules/4.9.191/xradio_wlan_tsp.ko
