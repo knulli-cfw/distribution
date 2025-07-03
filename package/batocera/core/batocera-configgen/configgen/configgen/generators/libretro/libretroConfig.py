@@ -676,7 +676,7 @@ def createLibretroConfig(generator: Generator, system: Emulator, controllers: Co
                     'btn_r2': '1', 'btn_a': '-1', 'btn_b': '-1', 'btn_x': '-1', 'btn_y': '-1',
                 }
             },
-            'TRIMUI Player1': {  # trimui-smartpro
+            'TRIMUI Smart Pro Controller': {  # trimui-smartpro
                 'rotation': 'left', 'remap': common_remap
             },
         }
