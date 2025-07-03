@@ -25,7 +25,13 @@ case $1 in
         ;;
     stop)
         # Get brightness values
-        CURRENT_BRI=$(batocera-brightness)
+        # Determine current brightness from file or fallback to batocera-brightness
+        if [ -f "/var/run/batocera-brightness" ]; then
+            read -r CURRENT_BRI < /var/run/batocera-brightness
+        else
+            CURRENT_BRI=$(batocera-brightness)
+        fi
+
         SAVED_BRI=$(batocera-settings-get display.brightness)
 
         # Update saved brightness setting if it's different from the current brightness

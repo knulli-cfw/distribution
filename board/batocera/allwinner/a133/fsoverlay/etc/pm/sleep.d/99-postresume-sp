@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # We only want to run the script if the board has lid capability
 if ! knulli-board-capability "lid"; then
@@ -7,9 +7,9 @@ fi
 
 case "$1" in
     thaw|resume)
-        HALLKEY=$(cat "/sys/class/power_supply/axp2202-battery/hallkey")
+        read -r HALLKEY < /sys/class/power_supply/axp2202-battery/hallkey
         if [ "$HALLKEY" = "0" ]; then
-            ( sleep 2 && pm-suspend ) &
+            ( sleep 1 && pm-suspend ) &
         fi
         ;;
 esac

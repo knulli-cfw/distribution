@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Stored brightness value when the display is turned off.
+VALPATH=/var/run/$(basename "$0")
+
 XMAX=255
 XMIN=3
 
@@ -27,18 +30,18 @@ cycle() {
 }
 
 display_off() {
-    echo disable > /sys/kernel/debug/dispdbg/command
-    echo lcd0 > /sys/kernel/debug/dispdbg/name
-    sleep 0.1
-    echo 1 > /sys/kernel/debug/dispdbg/start
+    if [ ! -e "${VALPATH}" ]; then
+        brightness get > "${VALPATH}"
+        brightness set 0
+    fi
     exit 0
 }
 
 display_on() {
-    echo enable > /sys/kernel/debug/dispdbg/command
-    echo lcd0 > /sys/kernel/debug/dispdbg/name
-    sleep 0.1
-    echo 1 > /sys/kernel/debug/dispdbg/start
+    if [ -e "${VALPATH}" ]; then
+        brightness set "$(cat "${VALPATH}")"
+        rm -f "${VALPATH}"
+    fi
     exit 0
 }
 

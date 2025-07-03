@@ -8,7 +8,7 @@
 #    ##                                           ##  #
 #    ############################################     #
 #    ############################################     #
-# v2.1                                                #
+# v2.2                                                #
 #######################################################
 
 LOCK="/var/run/battery-saver.lock"
@@ -24,6 +24,8 @@ PAUSE_FLAG="/var/run/battery_saver.pause"
 BRIGHTNESS="$(batocera-brightness)"
 GOVERNOR=""
 SAVED_GOVERNOR=""
+
+echo "1" > "$STATE_FLAG"
 
 # Called on exit
 cleanup() {
@@ -76,51 +78,38 @@ initialize_settings() {
 animate_brightness() {
     local current=$1
     local target=$2
-    local duration=200  # Total animation duration in milliseconds
-    local min_steps=2   # Minimum number of steps
+    local duration=300  # Total animation duration in milliseconds
+    local min_steps=3   # Minimum number of steps
     local max_steps=6   # Maximum number of steps
 
-    # Calculate the total distance
     local distance=$((target - current))
     local abs_distance=$((distance > 0 ? distance : -distance))
-
-    # Determine the number of steps
     local steps=$((abs_distance > max_steps ? max_steps : abs_distance))
     steps=$((steps < min_steps ? min_steps : steps))
 
-    # Make needed calculations
     local step=$((distance / steps))
     step=$((step == 0 ? (distance > 0 ? 1 : -1) : step))
     local remainder=$((distance % steps))
-    local sleep_duration=$(awk "BEGIN {print $duration / ($steps * 1000)}")
+    local sleep_duration=$(awk "BEGIN {printf \"%.4f\", $duration / ($steps * 1000)}")
 
-    local final_step=$((steps - 1))
-
+    local -a levels=()
     for ((i = 0; i < steps; i++)); do
-        # Adjust current based on remainder and direction
         if ((i == 0 && distance > 0)); then
-            # Apply remainder first if increasing brightness
             current=$((current + step + remainder))
-        elif ((i == final_step && distance < 0)); then
-            # Apply remainder last if decreasing brightness
+        elif ((i == steps - 1 && distance < 0)); then
             current=$((current + step + remainder))
         else
             current=$((current + step))
         fi
-
-        # Prevent overshooting
         if ((step > 0 && current > target)) || ((step < 0 && current < target)); then
             current=$target
         fi
+        levels+=("$current")
+    done
 
-        # Apply brightness
-        batocera-brightness "$current"
+    for level in "${levels[@]}"; do
+        batocera-brightness "$level"
         sleep "$sleep_duration"
-
-        # Exit loop early if we hit the target
-        if [ "$current" -eq "$target" ]; then
-            break
-        fi
     done
 }
 

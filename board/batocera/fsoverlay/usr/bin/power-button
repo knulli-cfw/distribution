@@ -1,7 +1,5 @@
 #!/bin/bash
-# Suspend or shutdown
 
-POWER_BUTTON_STATE="/var/run/power-button-state.flag"
 LOCK_FILE="/var/run/power-button-script.lock"
 
 exec 200>"${LOCK_FILE}"
@@ -11,11 +9,14 @@ fi
 
 trap 'flock -u 200;' EXIT
 
+POWER_BUTTON_STATE="/var/run/power-button-state.flag"
+DEBOUNCE_FILE="/var/run/suspend.debounce"
+
 # Threshold for long press to shutdown (in seconds) (some boards cut power when power button is held too long)
 LONG_PRESS_THRESHOLD=2
 
-# Check if waking from suspend after lid-control called suspend
-if fuser /var/run/lid-control.lock &>/dev/null; then
+# Global suspend debounce
+if [ -f "$DEBOUNCE_FILE" ]; then
     exit 0
 fi
 

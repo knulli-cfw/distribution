@@ -8,29 +8,17 @@ XMIN=3
 
 CYCLESTEP=20 # % additional brightbess at each step
 
-getValue() {
-    if [ -e "${VALPATH}" ]; then
-        cat "${VALPATH}"
-    else
-        brightness get
-    fi
-}
-
 setValue() {
     NEWVAL=$1
 
     test "${NEWVAL}" -lt 0         && NEWVAL=0
     test "${NEWVAL}" -gt "${XMAX}" && NEWVAL="${XMAX}"
 
-    if [ -e "${VALPATH}" ]; then
-        echo "${NEWVAL}" > "${VALPATH}"
-    else
-        brightness set "${NEWVAL}"
-    fi
+    brightness set "${NEWVAL}"
 }
 
 cycle() {
-    X=$(getValue)
+    X=$(brightness get)
     FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
     LC_ALL=C FVALUE=$(printf '%.*f\n' 0 "${FVALUE}") # round
     NEWVAL=$(echo "${FVALUE} + ${CYCLESTEP}" | bc)
@@ -60,7 +48,7 @@ display_on() {
 # get
 if test $# = 0
 then
-    X=$(getValue)
+    X=$(brightness get)
     FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
     LC_ALL=C printf '%.*f\n' 0 "${FVALUE}" # round
     exit 0
@@ -85,7 +73,7 @@ fi
 # set +/-
 if test $# = 2
 then
-    X=$(getValue)
+    X=$(brightness get)
     DELTA=$(expr "${2}" '*' ${XMAX} / 100)
 
     if [ "${1}" = "+" ]; then
