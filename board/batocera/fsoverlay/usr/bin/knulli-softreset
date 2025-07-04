@@ -1,0 +1,22 @@
+#!/bin/sh
+
+RESET_STATE="/var/run/knulli-softreset-state.flag"
+
+# Threshold for how long before failsafe activates
+PRESS_THRESHOLD=5
+
+do_reset() {
+    batocera-es-swissknife --emukill
+    batocera-es-swissknife --restart
+}
+
+[ -f "$RESET_STATE" ] || : > "$RESET_STATE" # Create file/initialize state
+
+# Wait for modification of flag file
+if inotifywait -qq -t "$PRESS_THRESHOLD" -e close_write "$RESET_STATE"; then
+    exit 0
+else
+    do_reset
+fi
+
+exit 0

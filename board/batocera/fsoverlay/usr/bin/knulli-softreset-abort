@@ -1,0 +1,7 @@
+#!/bin/sh
+RESET_STATE="/var/run/knulli-softreset-state.flag"
+
+sleep 0.1
+: > "$RESET_STATE"
+
+exit 0
