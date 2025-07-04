@@ -34,7 +34,7 @@ from .batoceraPaths import SAVES, SYSTEM_SCRIPTS, USER_SCRIPTS
 from .controller import Controller
 from .Emulator import Emulator
 from .generators import get_generator
-from .utils import bezels as bezelsUtil, gunsUtils, videoMode, wheelsUtils
+from .utils import bezels as bezelsUtil, videoMode
 from .utils.logger import setup_logging
 from .utils.squashfs import squashfs_rom
 
@@ -563,7 +563,7 @@ def launch() -> None:
             _profiler.disable()
             _profiler.dump_stats('/var/run/emulatorlauncher.prof')
 
-        time.sleep(1) # this seems to be required so that the gpu memory is restituated and available for es
+        time.sleep(0.5) # this seems to be required so that the gpu memory is restituated and available for es
         eslog.debug(f"Exiting configgen with status {exitcode!s}")
 
         exit(exitcode)
