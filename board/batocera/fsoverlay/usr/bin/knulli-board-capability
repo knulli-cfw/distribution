@@ -1,83 +1,17 @@
 #!/bin/sh
 
-
 CAPABILITIES_FILE="/boot/boot/batocera.board.capability"
-BOARD_FILE="/boot/boot/batocera.board"
+CAPABILITY="$1"
 
-HAS_CAPABILITY=false
-
-CAPABILITY=$1
-
-if [ -z "$CAPABILITY" ]; then
-    echo "Usage: $0 <rgb|lid|hdmi|wifi|bluetooth|analogstick|rumble|adb|mtp>"
+[ -z "$CAPABILITY" ] && {
+    echo "Usage: $0 <rgb|lid|hdmi|wifi|bluetooth|analogstick|rumble|adb|bezelproject>"
     exit 1
-fi
-
-# Examine capability file to check if the board has the given capability.
-checkCapabilityFile() {
-    CAPABILITIES=$(cat $CAPABILITIES_FILE)
-    if echo "$CAPABILITIES" | grep -q "$CAPABILITY"; then
-        HAS_CAPABILITY=true
-    fi
 }
 
-# Read board file and determine hard-coded capabilities by board name.
-checkCapabilityByBoard() {
-    BOARD=$(cat $BOARD_FILE)
-    if [ "$CAPABILITY" = "rgb" ]; then
-        if [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "trimui-brick" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "hdmi" ]; then
-        if [ "$BOARD" = "rg35xx-plus" ] || [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg35xx-2024" ] || [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "rg28xx" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "rg34xx" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "lid" ]; then
-        if [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "powkiddy-v90s" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "wifi" ]; then
-        if [ "$BOARD" = "rg35xx-plus" ] || [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "rg34xx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "trimui-brick" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "bluetooth" ]; then
-        if [ "$BOARD" = "rg35xx-plus" ] || [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "rg34xx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "trimui-brick" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "analogstick" ]; then
-        if [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "rg34xx-sp" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "rumble" ]; then
-        if [ "$BOARD" = "rg35xx-plus" ] || [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg35xx-2024" ] || [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "rg28xx" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "rg34xx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "trimui-brick" ] || [ "$BOARD" = "powkiddy-v90s" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "adb" ]; then
-        if [ "$BOARD" = "rg35xx-plus" ] || [ "$BOARD" = "rg35xx-h" ] || [ "$BOARD" = "rg35xx-2024" ] || [ "$BOARD" = "rg35xx-sp" ] || [ "$BOARD" = "rg34xx-sp" ] || [ "$BOARD" = "rg28xx" ] || [ "$BOARD" = "rg40xx-h" ] || [ "$BOARD" = "rg40xx-v" ] || [ "$BOARD" = "rg-cubexx" ] || [ "$BOARD" = "rg34xx" ] || [ "$BOARD" = "trimui-smart-pro" ] || [ "$BOARD" = "trimui-brick" ] || [ "$BOARD" = "miyoo-flip" ] || [ "$BOARD" = "rg-arc-s" ] || [ "$BOARD" = "powkiddy-rgb30" ] || [ "$BOARD" = "powkiddy_a13" ] || [ "$BOARD" = "ps5000" ] || [ "$BOARD" = "ps7000" ] || [ "$BOARD" = "powkiddy-v90s" ]; then
-            HAS_CAPABILITY=true
-        fi
-    elif [ "$CAPABILITY" = "bezelproject" ]; then
-        if [ "$BOARD" = "trimui-smart-pro" ]; then
-            HAS_CAPABILITY=true
-        fi
-    fi
-    
-}
-
-if [ -f $CAPABILITIES_FILE ]; then
-    # If a capabilities file exists, check for the capability
-    # inside the capabilities file.
-    checkCapabilityFile
-else
-    # If capabilities file does not exists, check for the
-    # capability by board name.
-    checkCapabilityByBoard
-fi
-
-if $HAS_CAPABILITY; then
+if [ -f "$CAPABILITIES_FILE" ] && grep -qw "$CAPABILITY" "$CAPABILITIES_FILE"; then
     echo "true"
     exit 0
-else
-    echo "false"
-    exit 1
 fi
+
+echo "false"
+exit 1

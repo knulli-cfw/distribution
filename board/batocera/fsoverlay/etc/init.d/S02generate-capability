@@ -1,0 +1,60 @@
+#!/bin/bash
+
+if [ "$1" != "start" ]; then
+    exit 0
+fi
+
+CAPABILITIES_FILE="/boot/boot/batocera.board.capability"
+BOARD_FILE="/boot/boot/batocera.board"
+
+# Get board
+CURRENT_BOARD=$(cat "$BOARD_FILE" 2>/dev/null)
+
+# Skip if already generated and board has not changed
+if [ -f "$CAPABILITIES_FILE" ]; then
+    STORED_BOARD=$(cut -d' ' -f1 "$CAPABILITIES_FILE")
+    if [ "$CURRENT_BOARD" = "$STORED_BOARD" ]; then
+        echo "Current board: "$CURRENT_BOARD". Capabilities already generated."
+        exit 0
+    fi
+fi
+
+# Define board capabilities
+declare -A BOARD_CAPABILITIES
+BOARD_CAPABILITIES[rgb]="rg40xx-h rg40xx-v rg-cubexx trimui-smart-pro trimui-brick"
+BOARD_CAPABILITIES[hdmi]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx"
+BOARD_CAPABILITIES[lid]="rg35xx-sp rg34xx-sp powkiddy-v90s"
+BOARD_CAPABILITIES[wifi]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
+BOARD_CAPABILITIES[bluetooth]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
+BOARD_CAPABILITIES[analogstick]="rg35xx-h rg40xx-h rg40xx-v rg-cubexx trimui-smart-pro rg34xx-sp"
+BOARD_CAPABILITIES[rumble]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
+BOARD_CAPABILITIES[adb]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick miyoo-flip \
+rg-arc-s powkiddy-rgb30 powkiddy_a13 ps5000 ps7000 powkiddy-v90s"
+BOARD_CAPABILITIES[bezelproject]="trimui-smart-pro"
+
+# Parse associative array for matching capabilities
+CAPS=()
+for CAP in "${!BOARD_CAPABILITIES[@]}"; do
+    for B in ${BOARD_CAPABILITIES[$CAP]}; do
+        if [ "$CURRENT_BOARD" = "$B" ]; then
+            CAPS+=("$CAP")
+            break
+        fi
+    done
+done
+
+if [ ${#CAPS[@]} -eq 0 ]; then
+    echo "No known capabilities for board "$CURRENT_BOARD". Skipping generation."
+    exit 0
+fi
+
+# mount /boot rw to write
+mount -o remount,rw /boot
+
+echo "Generating capabilities for: "$CURRENT_BOARD""
+echo "$CURRENT_BOARD ${CAPS[*]}" > "$CAPABILITIES_FILE"
+sync
+echo "Done."
+
+# mount back to read only
+mount -o remount,ro /boot
