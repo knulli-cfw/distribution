@@ -33,7 +33,10 @@ stop_pipewire() {
 
 case "$1" in
     start)
-        start_pipewire
+	if [ "$BOARD" = "powkiddy-v90s" ] || [ "$BOARD" = "powkiddy-v20" ]; then
+	    alsactl init
+	fi
+    	start_pipewire
     ;;
     stop)
         stop_pipewire

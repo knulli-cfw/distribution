@@ -3,7 +3,7 @@
 # The Powkiddy V90s uses a different set of kernel modules
 # If we are booting one up, mount bind its modules over the regular 4.9.191
 BOARD=$(cat /boot/boot/batocera.board)
-if [ "$BOARD" = "powkiddy-v90s" ]; then
+if [ "$BOARD" = "powkiddy-v90s" ] || [ "$BOARD" = "powkiddy-v20" ] ; then
 	mount -o bind /lib/modules/4.9.191_v90s /lib/modules/4.9.191
 fi
 
