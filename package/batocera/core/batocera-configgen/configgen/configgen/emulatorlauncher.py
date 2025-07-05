@@ -303,8 +303,8 @@ def getHudBezel(system: Emulator, generator: Generator, rom: str, gameResolution
         eslog.info(f"bezel size read from {overlay_png_file}")
 
     # max cover proportion and ratio distortion
-    max_cover = 0.05 # 5%
-    max_ratio_delta = 0.01
+    max_cover = 0.50 # 50%
+    max_ratio_delta = 0.5
 
     screen_ratio = gameResolution["width"] / gameResolution["height"]
     bezel_ratio  = bezel_width / bezel_height
