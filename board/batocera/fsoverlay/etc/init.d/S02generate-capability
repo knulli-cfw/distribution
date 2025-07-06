@@ -31,6 +31,7 @@ BOARD_CAPABILITIES[rumble]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp
 BOARD_CAPABILITIES[adb]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick miyoo-flip \
 rg-arc-s powkiddy-rgb30 powkiddy_a13 ps5000 ps7000 powkiddy-v90s"
 BOARD_CAPABILITIES[bezelproject]="trimui-smart-pro"
+BOARD_CAPABILITIES[toggleswitch]="trimui-smart-pro trimui-brick"
 
 # Parse associative array for matching capabilities
 CAPS=()

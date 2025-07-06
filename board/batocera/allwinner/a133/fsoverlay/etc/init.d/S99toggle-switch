@@ -1,7 +1,6 @@
 #!/bin/bash
 
-BOARD="$(cat /boot/boot/batocera.board)"
-if [ "$BOARD" != "trimui-brick" ] && [ "$BOARD" != "trimui-smart-pro" ]; then
+if ! knulli-board-capability "toggleswitch"; then
     exit 1
 fi
 
@@ -11,15 +10,14 @@ for i in {1..20}; do
     sleep 0.5
 done
 
+SWITCH_STATE=$(cat /sys/class/gpio/gpio243/value)
+
 case "$1" in
     start)
-        SWITCH_STATE=$(cat /sys/class/gpio/gpio243/value)
-        TOGGLE_SWITCH="/usr/bin/toggle-switch"
-
         if [ "$SWITCH_STATE" -eq 1 ]; then
-            "$TOGGLE_SWITCH" enable
+            toggle-switch enable
         else
-            "$TOGGLE_SWITCH" disable
+            toggle-switch disable
         fi
         ;;
     *)
