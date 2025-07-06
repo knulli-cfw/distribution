@@ -84,7 +84,7 @@ case "${ACTION}" in
                         "a133")
                             MODE=alsa_output._sys_devices_platform_soc_sndcodec_sound_card0.playback.0.0
                             amixer -c 0 sset HpSpeaker on
-                            amixer -c 0 sset Headphone "$(batocera-settings-get audio.headphone || echo 0)"
+                            amixer -c 0 sset Headphone "$(batocera-settings-get audio.headphone || echo 1)"
                             LANG=C pactl set-default-sink "${MODE}" || exit 1
                             ;;
                         *)
