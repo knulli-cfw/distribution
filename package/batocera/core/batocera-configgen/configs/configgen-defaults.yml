@@ -357,6 +357,8 @@ moonlight:
     bezel: none
     hud_support: false
 mpv:
+  emulator: mpv
+  core:     mpv
   options:
     bezel: none
     hud_support: false
