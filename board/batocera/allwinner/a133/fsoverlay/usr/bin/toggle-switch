@@ -1,10 +1,10 @@
 #!/bin/bash
 
-TOGGLE_STATE="/var/run/toggle-switch.state"
-
 if ! knulli-board-capability "toggleswitch"; then
     exit 1
 fi
+
+TOGGLE_STATE="/var/run/toggle-switch.state"
 
 MODE="$(/usr/bin/batocera-settings-get system.toggleswitch.mode)"
 if [[ -z "$MODE" || ! "$MODE" =~ ^(mute|rgboff|airplane)$ ]]; then
