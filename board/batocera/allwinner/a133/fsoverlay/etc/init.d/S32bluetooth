@@ -10,6 +10,17 @@ case "$1" in
     start)
         # Restores old settings saved in userdata
         batocera-bluetooth restore
+        enabled="$(/usr/bin/batocera-settings-get controllers.bluetooth.enabled)"
+        [ "$enabled" = "1" ] || exit 0
+
+        ps3_enabled="$(/usr/bin/batocera-settings-get controllers.ps3.enabled)"
+        if [ "$enabled" = "1" ] && [ "$ps3_enabled" = "1" ]
+        then
+            /usr/bin/batocera-settings-set -f /etc/bluetooth/input.conf ClassicBondedOnly false
+        else
+            /usr/bin/batocera-settings-set -f /etc/bluetooth/input.conf ClassicBondedOnly true
+        fi
+
         # soft unblock bluetooth
         rfkill unblock bluetooth
 
