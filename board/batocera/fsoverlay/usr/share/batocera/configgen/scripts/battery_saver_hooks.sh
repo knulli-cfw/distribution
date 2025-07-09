@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# Flag path
-PAUSE_FLAG="/var/run/battery_saver.pause"
+BATTSAVER_DIR="/var/run/battery-saver/"
+PAUSE_FLAG="/var/run/battery-saver/gamestart-hook.pause"
+
+mkdir -p "$BATTSAVER_DIR"
 
 do_gamestart() {
     local SYSTEM_NAME="$1"

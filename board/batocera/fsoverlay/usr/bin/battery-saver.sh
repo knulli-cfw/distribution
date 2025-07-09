@@ -8,10 +8,13 @@
 #    ##                                           ##  #
 #    ############################################     #
 #    ############################################     #
-# v2.2                                                #
+# v2.3                                                #
 #######################################################
 
-LOCK="/var/run/battery-saver.lock"
+BATTSAVER_DIR="/var/run/battery-saver/"
+mkdir -p "$BATTSAVER_DIR"
+
+LOCK="/var/run/battery-saver/battery-saver.lock"
 
 exec 200>"$LOCK"
 flock -n 200 || exit 1
@@ -19,8 +22,8 @@ flock -n 200 || exit 1
 trap 'cleanup' EXIT
 
 STATE="active"
-STATE_FLAG="/var/run/activity_state.flag"
-PAUSE_FLAG="/var/run/battery_saver.pause"
+
+STATE_FLAG="/var/run/battery-saver/activity_state.flag"
 BRIGHTNESS="$(batocera-brightness)"
 GOVERNOR=""
 SAVED_GOVERNOR=""
@@ -41,6 +44,16 @@ cleanup() {
 
     rm -f "$LOCK"
     exit 0
+}
+
+check_pause() {
+    shopt -s nullglob
+    for _ in "$BATTSAVER_DIR"/*.pause; do
+        shopt -u nullglob
+        return 0  # Found pause file
+    done
+    shopt -u nullglob
+    return 1  # No pause file found
 }
 
 initialize_settings() {
@@ -226,7 +239,7 @@ monitor_controllers() {
             esac
         fi
 
-        if [ ! -f "$PAUSE_FLAG" ]; then
+        if ! check_pause; then
             if [ "$STATE" = "active" ]; then
                 do_inactivity
             elif [ "$STATE" = "inactive" ]; then
