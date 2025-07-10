@@ -770,6 +770,7 @@ def createLibretroConfig(generator: Generator, system: Emulator, controllers: Co
     if system.isOptSet('rewind') and system.getOptBoolean('rewind') == True:
         if(not system.name in systemNoRewind):
             retroarchConfig['rewind_enable'] = 'true'
+            retroarchConfig['rewind_granularity'] = '2' # This reduces the rewind performance cost a good amount
         else:
             retroarchConfig['rewind_enable'] = 'false'
     else:
