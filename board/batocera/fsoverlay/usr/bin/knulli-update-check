@@ -5,6 +5,25 @@ updateurl="https://updates.knulli.org"
 update_dir="/userdata/system/upgrade"
 log="/userdata/system/logs/knulli.log"
 firmware_sig="/boot/boot/firmware.sig"
+access_key_file="/userdata/system/.access_key"
+
+# Function to get board name
+get_board_name() {
+    if [ -n "$TEST_BOARD" ]; then
+        echo "$TEST_BOARD"
+    elif [ -f "/boot/boot/batocera.board" ]; then
+        cat "/boot/boot/batocera.board"
+    else
+        echo "unknown"
+    fi
+}
+
+# Function to load access key for protected channels
+load_access_key() {
+    if [ -f "$access_key_file" ]; then
+        cat "$access_key_file" 2>/dev/null | tr -d '\n'
+    fi
+}
 
 # Function to parse JSON response - requires jq
 parse_json_response() {
@@ -99,7 +118,57 @@ get_firmware_info() {
     echo "$md5_hash|$version"
 }
 
-# Get current system firmware information
+# Function to extract partition MD5s from firmware.sig
+get_partition_info() {
+    local sig_file="$firmware_sig"
+    local partitions_json=""
+    
+    if [ ! -f "$sig_file" ]; then
+        echo "{}"
+        return 0
+    fi
+    
+    # Extract partition MD5s from [partitions] section
+    local in_partitions=false
+    local partition_entries=""
+    
+    while IFS= read -r line; do
+        # Remove leading/trailing whitespace
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        # Check for section headers
+        if [[ "$line" == "[partitions]" ]]; then
+            in_partitions=true
+            continue
+        elif [[ "$line" =~ ^\[.*\]$ ]]; then
+            in_partitions=false
+            continue
+        fi
+        
+        # If we're in partitions section and line contains =
+        if [ "$in_partitions" = true ] && [[ "$line" =~ = ]]; then
+            key=$(echo "$line" | cut -d'=' -f1)
+            value=$(echo "$line" | cut -d'=' -f2)
+            
+            # Add to partition entries (JSON format)
+            if [ -n "$partition_entries" ]; then
+                partition_entries="$partition_entries,"
+            fi
+            partition_entries="$partition_entries\"$key\":\"$value\""
+        fi
+    done < "$sig_file"
+    
+    # Return JSON object
+    echo "{$partition_entries}"
+}
+
+# Get current system information
+board_name=$(get_board_name)
+if [ -z "$board_name" ] || [ "$board_name" = "unknown" ]; then
+    echo "ERROR: Could not determine board name" >&2
+    exit 1
+fi
+
 firmware_info=$(get_firmware_info)
 if [ -z "$firmware_info" ]; then
     echo "ERROR: Failed to get firmware information" >&2
@@ -115,11 +184,31 @@ if [ -z "$current_rootfs_md5" ] || [ -z "$current_version" ]; then
     exit 1
 fi
 
+# Get partition information
+partition_info=$(get_partition_info)
+
+# Load access key if available
+access_key=$(load_access_key)
+
+echo "Board: $board_name" >> "$log"
 echo "Current rootfs MD5: $current_rootfs_md5" >> "$log"
 echo "Current version: $current_version" >> "$log"
+echo "Channel: $upgrade_channel" >> "$log"
 
 # Create JSON payload for API request
-json_data="{\"md5\":\"$current_rootfs_md5\",\"version\":\"$current_version\",\"channel\":\"$upgrade_channel\"}"
+json_payload="{\"board\":\"$board_name\",\"version\":\"$current_version\",\"channel\":\"$upgrade_channel\",\"rootfs_md5\":\"$current_rootfs_md5\",\"partitions\":$partition_info"
+
+# Add access key for protected channels
+if [ "$upgrade_channel" = "dev" ] || [ "$upgrade_channel" = "alpha" ]; then
+    if [ -n "$access_key" ]; then
+        json_payload="$json_payload,\"access_key\":\"$access_key\""
+        echo "Using access key for $upgrade_channel channel" >> "$log"
+    else
+        echo "WARNING: No access key found for $upgrade_channel channel" >> "$log"
+    fi
+fi
+
+json_payload="$json_payload}"
 
 # Create update response file path
 response_file="$update_dir/update_response.json"
@@ -129,7 +218,7 @@ mkdir -p "$(dirname "$response_file")" 2>/dev/null || true
 
 # Call the API to check for updates
 if ! curl -s -X POST -H "Content-Type: application/json" \
-    -d "$json_data" \
+    -d "$json_payload" \
     "$updateurl/ota/check" > "$response_file"; then
         echo "ERROR: Failed to download updates list"
         exit 2
@@ -142,13 +231,16 @@ if ! jq empty "$response_file" 2>/dev/null; then
     exit 2
 fi
 
-# Check if update is available
-update_available=$(parse_json_response "$update_dir/update_response.json" "update_available")
-if [ "$update_available" != "true" ]; then
+# Check if updates are available
+updates_available=$(parse_json_response "$response_file" "updates_available")
+if [ "$updates_available" != "true" ]; then
     # Try to get reason
-    reason=$(parse_json_response "$update_dir/update_response.json" "reason")
+    reason=$(parse_json_response "$response_file" "reason")
+    message=$(parse_json_response "$response_file" "message")
     
-    if [ -n "$reason" ]; then
+    if [ -n "$message" ]; then
+        echo "No updates available: $message" | tee -a "$log"
+    elif [ -n "$reason" ]; then
         echo "No updates available: $reason" | tee -a "$log"
     else
         echo "No updates available" | tee -a "$log"
@@ -157,40 +249,53 @@ if [ "$update_available" != "true" ]; then
     exit 2
 fi
 
-# Get update version
-update_version=$(parse_json_response "$update_dir/update_response.json" "version")
-
-echo "$update_version"
-
-# Get update URL and MD5
-update_url=$(parse_json_response "$update_dir/update_response.json" "url")
-update_md5=$(parse_json_response "$update_dir/update_response.json" "md5")
-update_build_date=$(parse_json_response "$update_dir/update_response.json" "build_date")
-update_reason=$(parse_json_response "$update_dir/update_response.json" "update_reason")
-
-# Check if patch is available
-patch_available=$(parse_json_response "$update_dir/update_response.json" "patch_available")
-patch_url=""
-if [ "$patch_available" = "true" ]; then
-    patch_url=$(parse_json_response "$update_dir/update_response.json" "patch_url")
-    patch_target_md5=$(parse_json_response "$update_dir/update_response.json" "patch_target_md5")
+# Check for rootfs update
+rootfs_update_available=$(jq -r '.rootfs_update != null' "$response_file")
+if [ "$rootfs_update_available" = "true" ]; then
+    # Get rootfs update information
+    update_version=$(parse_json_response "$response_file" "rootfs_update.version")
+    update_md5=$(parse_json_response "$response_file" "rootfs_update.target_md5")
+    update_build_date=$(parse_json_response "$response_file" "rootfs_update.build_date")
+    update_url=$(parse_json_response "$response_file" "rootfs_update.full_url")
+    
+    # Check if patch is available
+    patch_available=$(parse_json_response "$response_file" "rootfs_update.patch_available")
+    if [ "$patch_available" = "true" ]; then
+        patch_url=$(parse_json_response "$response_file" "rootfs_update.patch_url")
+    fi
+    
+    # Log found rootfs update
+    echo "Found rootfs update: $update_version (Build date: $update_build_date)" >> "$log"
+    echo "  Current version: $current_version" >> "$log"
+    echo "  Target MD5: $update_md5" >> "$log"
+    if [ "$patch_available" = "true" ]; then
+        echo "  Patch available: Yes (URL: $patch_url)" >> "$log"
+    else
+        echo "  Patch available: No" >> "$log"
+    fi
+    
+    # Output the update version for scripts that expect it
+    echo "$update_version"
 fi
 
-# Log found update
-echo "Found update: $update_version (Build date: $update_build_date)" >> "$log"
-echo "  Current version: $current_version" >> "$log"
-echo "  Update reason: ${update_reason:-version_update}" >> "$log"
-if [ "$patch_available" = "true" ]; then
-    echo "  Patch available: Yes (URL: $patch_url)" >> "$log"
-else
-    echo "  Patch available: No" >> "$log"
+# Check for partition updates
+partition_updates_count=$(jq -r '.partition_updates | length' "$response_file")
+if [ "$partition_updates_count" -gt 0 ]; then
+    echo "Found $partition_updates_count partition update(s)" >> "$log"
+    
+    # Log partition updates
+    for i in $(seq 0 $((partition_updates_count - 1))); do
+        partition=$(jq -r ".partition_updates[$i].partition" "$response_file")
+        current_md5=$(jq -r ".partition_updates[$i].current_md5" "$response_file")
+        target_md5=$(jq -r ".partition_updates[$i].target_md5" "$response_file")
+        partition_url=$(jq -r ".partition_updates[$i].url" "$response_file")
+        
+        echo "  Partition: $partition" >> "$log"
+        echo "    Current MD5: $current_md5" >> "$log"
+        echo "    Target MD5: $target_md5" >> "$log"
+        echo "    URL: $partition_url" >> "$log"
+    done
 fi
 
-# If we have a valid update version and URL
-if [ -n "$update_version" ] && [ -n "$update_url" ]; then
-    # Return success status for update available
-    exit 0
-fi
-
-# No valid update found
-exit 2
+# Return success status for updates available
+exit 0
