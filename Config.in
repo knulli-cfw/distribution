@@ -649,4 +649,5 @@ menu "Knulli Packages"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/emulators/cemu/Config.in"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/cores/libretro-panda3ds/Config.in"
   source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/modules/rtkbtusb/Config.in"
+  source "$BR2_EXTERNAL_BATOCERA_PATH/package/knulli/firmwares/extra-firmwares/Config.in"
 endmenu
