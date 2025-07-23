@@ -1,0 +1,7 @@
+config BR2_PACKAGE_EXTRA_FIRMWARES
+	bool "extra firmwares"
+    select BR2_PACKAGE_ALLLINUXFIRMWARES
+
+	help
+	  knulli extra linux firmwares
+
