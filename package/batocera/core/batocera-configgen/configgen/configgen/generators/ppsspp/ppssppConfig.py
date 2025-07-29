@@ -16,6 +16,7 @@ eslog = logging.getLogger(__name__)
 
 ppssppConfig: Final   = PPSSPP_PSP_SYSTEM_DIR / 'ppsspp.ini'
 ppssppControls: Final = PPSSPP_PSP_SYSTEM_DIR / 'controls.ini'
+ppssppRetroach: Final = PPSSPP_PSP_SYSTEM_DIR / 'ppsspp_retroachievements.dat'
 
 def writePPSSPPConfig(system: Emulator):
     iniConfig = CaseSensitiveConfigParser(interpolation=None)
@@ -30,6 +31,11 @@ def writePPSSPPConfig(system: Emulator):
     # Save the ini file
     with ensure_parents_and_open(ppssppConfig, 'w') as configfile:
         iniConfig.write(configfile)
+
+def writeRetroAchievements(token: str):
+    if token:
+        with ensure_parents_and_open(ppssppRetroach, 'w') as retroach_file:
+            retroach_file.write(token)
 
 def createPPSSPPConfig(iniConfig, system):
 
@@ -181,6 +187,38 @@ def createPPSSPPConfig(iniConfig, system):
     iniConfig.set("Upgrade", "UpgradeMessage", "")
     iniConfig.set("Upgrade", "UpgradeVersion", "")
     iniConfig.set("Upgrade", "DismissedVersion", "")
+
+    ## [RetroAchievements]
+    if not iniConfig.has_section("Achievements"):
+        iniConfig.add_section("Achievements")
+        
+        # Achievements enabled
+        if system.isOptSet('retroachievements') and system.getOptBoolean('retroachievements') == True:
+          iniConfig.set("Achievements", "AchievementsEnable", "True")
+        else:
+          iniConfig.set("Achievements", "AchievementsEnable", "False")
+        
+        # Achievements credentials
+        iniConfig.set("Achievements", "AchievementsUserName", system.config.get("retroachievements.username", ""))
+        writeRetroAchievements(str(system.config.get("retroachievements.token", None)))
+        
+        # Achievements hardcore mode
+        if system.isOptSet('retroachievements.hardcore') and system.getOptBoolean('retroachievements.hardcore') == True:
+            iniConfig.set("Achievements", "AchievementsChallengeMode", "True")
+        else:
+            iniConfig.set("Achievements", "AchievementsChallengeMode", "False")
+        
+        # Achievements encore mode
+        if system.isOptSet('retroachievements.encore') and system.getOptBoolean('retroachievements.encore') == True:
+            iniConfig.set("Achievements", "AchievementsEncoreMode", "True")
+        else:
+            iniConfig.set("Achievements", "AchievementsEncoreMode", "False")
+
+        # Achievements sound enabled
+        if system.isOptSet("retroachievements.sound") and system.config["retroachievements.sound"] != "none":
+            iniConfig.set("Achievements", "AchievementsSoundEffects", "True")
+        else:
+            iniConfig.set("Achievements", "AchievementsSoundEffects", "False")
 
     # Custom : allow the user to configure directly PPSSPP via batocera.conf via lines like : ppsspp.section.option=value
     for user_config in system.config:
