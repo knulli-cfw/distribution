@@ -30,15 +30,15 @@ REMAINING_TRANSFERS=1
 while [ $REMAINING_TRANSFERS -gt 0 ] ; do
   # Assume all files have been uploaded now.
   REMAINING_TRANSFERS=0
-  CONNECTED_DEVICES=$(curl --silent --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET http://127.0.0.1:8384/rest/system/connections | jq ".connections | to_entries | .[] | select(.value.connected==true) | select(.value.paused==false) | .key" | tr -d '"')
+  CONNECTED_DEVICES=$(curl --silent --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET http://127.0.0.1:8384/rest/system/connections | jq ".connections | to_entries | .[] | select(.value.connected==true) | select(.value.paused==false) | .key" | tr -d '"')
   # For every shared folder on this device...
   for FOLDER_ID in ${FOLDER_IDS[@]}; do
-  NEEDED_FILES_SELF=$(curl -s --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET "http://127.0.0.1:8384/rest/db/need?folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+  NEEDED_FILES_SELF=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/need?folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
   NEEDED_FILES_SELF_COUNT=$(echo "$NEEDED_FILES_SELF" | sed '/^\s*$/d' | wc -l)
   REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_SELF_COUNT))
   while read CONNECTED_DEVICE_ID; do
     # ...retrieve file names of remaining uploads (but exclude sync-conflict files!)...
-    NEEDED_FILES_OTHERS=$(curl -s --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET "http://127.0.0.1:8384/rest/db/remoteneed?device=$CONNECTED_DEVICE_ID&folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+    NEEDED_FILES_OTHERS=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/remoteneed?device=$CONNECTED_DEVICE_ID&folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
     NEEDED_FILES_OTHERS_COUNT=$(echo "$NEEDED_FILES_OTHERS" | sed '/^\s*$/d' | wc -l)
     # ...and update remaining updates based on how many files are queued.
     REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_OTHERS_COUNT))
