@@ -1,11 +1,10 @@
 #!/bin/bash
 
-MUTE_STATE="/var/run/toggle-switch-mute"
-
-BOARD="$(cat /boot/boot/batocera.board)"
-if [ "$BOARD" != "trimui-brick" ] && [ "$BOARD" != "trimui-smart-pro" ]; then
+if ! knulli-board-capability "toggleswitch"; then
     exit 1
 fi
+
+TOGGLE_STATE="/var/run/toggle-switch.state"
 
 MODE="$(/usr/bin/batocera-settings-get system.toggleswitch.mode)"
 if [[ -z "$MODE" || ! "$MODE" =~ ^(mute|rgboff|airplane)$ ]]; then
@@ -19,20 +18,25 @@ case "$ACTION" in
         case "$MODE" in
             mute)
                 /usr/bin/batocera-audio setSystemVolume mute
-                touch "$MUTE_STATE"
+                echo "mute" > "$TOGGLE_STATE"
                 ;;
             rgboff)
                 /usr/bin/batocera-settings-set led.mode 0
+                echo "rgboff" > "$TOGGLE_STATE"
                 ;;
             airplane)
                 /usr/bin/batocera-planemode enable
+                echo "airplane" > "$TOGGLE_STATE"
                 ;;
         esac
         ;;
     disable)
+        # Restore previously saved mode
+        if [ -f "$TOGGLE_STATE" ]; then
+            MODE="$(cat "$TOGGLE_STATE")"
+        fi
         case "$MODE" in
             mute)
-                rm "$MUTE_STATE"
                 /usr/bin/batocera-audio setSystemVolume unmute
                 ;;
             rgboff)
@@ -42,6 +46,7 @@ case "$ACTION" in
                 /usr/bin/batocera-planemode disable
                 ;;
         esac
+        rm -f "$TOGGLE_STATE"
         ;;
     *)
         echo "Usage: $0 [enable|disable]"

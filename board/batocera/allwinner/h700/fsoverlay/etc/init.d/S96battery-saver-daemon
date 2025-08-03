@@ -1,12 +1,14 @@
 #!/bin/sh
 
 DAEMON=/usr/bin/battery-saver.sh
-PIDFILE=/var/run/battery-saver.pid
+BATTSAVER_DIR="/var/run/battery-saver/"
+PIDFILE=/var/run/battery-saver/battery-saver.pid
 DAEMON_NAME=$(basename "$DAEMON")
+
+mkdir -p "$BATTSAVER_DIR"
 
 start_daemon() {
     echo "Starting $DAEMON_NAME."
-
     if [ -f "$PIDFILE" ] && start-stop-daemon --status --pidfile "$PIDFILE" > /dev/null 2>&1; then
         echo "$DAEMON_NAME is already running."
         exit 0
@@ -18,9 +20,8 @@ start_daemon() {
 
 stop_daemon() {
     echo "Stopping $DAEMON_NAME."
-
     start-stop-daemon --stop --quiet --pidfile "$PIDFILE" \
-       && { echo "$DAEMON_NAME stopped"; : > "$PIDFILE"; } || { echo "$DAEMON_NAME is not running."; }
+        && { echo "$DAEMON_NAME stopped"; rm -f "$PIDFILE"; } || { echo "$DAEMON_NAME is not running."; exit 1; }
 }
 
 # Sanity check

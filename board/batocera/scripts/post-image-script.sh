@@ -10,6 +10,8 @@ set -x
 ##### constants ################
 BATOCERA_BINARIES_DIR="${BINARIES_DIR}/knulli"
 GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
+RELEASES_DIR="${BASE_DIR}/releases"
+UPDATES_DIR="${BASE_DIR}/updates"
 ################################
 
 ##### find images to build #####
@@ -69,11 +71,6 @@ do
     mkdir -p "${BATOCERA_BINARIES_DIR}/images/${BATOCERA_SUBTARGET}" || exit 1
     (cd "${BATOCERA_BINARIES_DIR}/boot" && tar -cf - * | pigz -9 > "${BATOCERA_BINARIES_DIR}/images/${BATOCERA_SUBTARGET}/knulli-${BATOCERA_LOWER_TARGET}-${BATOCERA_SUBTARGET}-${SUFFIXVERSION}-${SUFFIXDATE}_boot.tar.gz") || exit 1
 
-#    # move the partitions folder after we create the boot.tar.gz update archive
-#    if [ -d "${BATOCERA_BINARIES_DIR}/boot/partitions" ]; then
-#    	mv "${BATOCERA_BINARIES_DIR}/boot/partitions" "${BATOCERA_BINARIES_DIR}/"
-#    fi
-
     # rename the squashfs : the .update is the version that will be renamed at boot to replace the old version
     mv "${BATOCERA_BINARIES_DIR}/boot/boot/batocera.update" "${BATOCERA_BINARIES_DIR}/boot/boot/batocera" || exit 1
 
@@ -119,6 +116,23 @@ do
     # copy the update signature files
     cp "${BINARIES_DIR}/firmware.sig" "${BATOCERA_BINARIES_DIR}/images/${BATOCERA_SUBTARGET}" || exit 1
 done
+
+#### Create the rootfs patches ##########
+# Only process if there are previous rootfs files to diff against
+if ls "${RELEASES_DIR}/"*"_rootfs.squashfs" 1> /dev/null 2>&1; then
+    # Calculate the current rootfs.squashfs md5sum
+    CURRENT_ROOTFS_MD5SUM=$(md5sum "${BINARIES_DIR}/rootfs.squashfs" | awk '{ print $1 }')
+    for ROOTFS_TARGET in "${RELEASES_DIR}/"*"_rootfs.squashfs"
+    do
+        # ROOTFS_TARGET is in the form of md5sum_rootfs.squashfs. We need to extract the md5sum into a variable
+        ROOTFS_MD5SUM=$(basename "${ROOTFS_TARGET}" | sed -e s+'^\([0-9a-f]*\)_rootfs.squashfs$'+'\1'+)
+        echo "Creating delta from ${ROOTFS_TARGET} (source) to current rootfs.squashfs (target) with source md5sum ${ROOTFS_MD5SUM}"
+        # create the delta.xdelta3 patch that can be applied to the old rootfs to get the new rootfs
+        xdelta3 -e -S none -s "${ROOTFS_TARGET}" "${BINARIES_DIR}/rootfs.squashfs" "${UPDATES_DIR}/patches/${ROOTFS_MD5SUM}_to_${CURRENT_ROOTFS_MD5SUM}.patch" || exit 1
+    done
+else
+    echo "No previous rootfs files found in ${RELEASES_DIR} - skipping delta creation"
+fi
 
 #### md5 and sha256 #######################
 for FILE in "${BATOCERA_BINARIES_DIR}/images/"*"/knulli-"*"_boot.tar.gz" "${BATOCERA_BINARIES_DIR}/images/"*"/knulli-"*".img.gz"

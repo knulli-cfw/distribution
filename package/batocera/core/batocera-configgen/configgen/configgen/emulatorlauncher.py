@@ -34,7 +34,7 @@ from .batoceraPaths import SAVES, SYSTEM_SCRIPTS, USER_SCRIPTS
 from .controller import Controller
 from .Emulator import Emulator
 from .generators import get_generator
-from .utils import bezels as bezelsUtil, gunsUtils, videoMode, wheelsUtils
+from .utils import bezels as bezelsUtil, videoMode
 from .utils.logger import setup_logging
 from .utils.squashfs import squashfs_rom
 
@@ -85,7 +85,7 @@ def start_rom(args: argparse.Namespace, maxnbplayers: int, rom: str, romConfigur
     # search guns in case use_guns is enabled for this game
     # force use_guns in case es tells it has a gun
     if not system.isOptSet('use_guns') and args.lightgun:
-        system.config["use_guns"] = True
+        system.config["use_guns"] = False
     if system.isOptSet('use_guns') and system.getOptBoolean('use_guns'):
         guns = controllers.getGuns()
         if "core" in system.config:
@@ -100,7 +100,7 @@ def start_rom(args: argparse.Namespace, maxnbplayers: int, rom: str, romConfigur
     # force use_wheels in case es tells it has a wheel
     wheelProcesses = None
     if not system.isOptSet('use_wheels') and args.wheel:
-        system.config["use_wheels"] = True
+        system.config["use_wheels"] = False
     if system.isOptSet('use_wheels') and system.getOptBoolean('use_wheels'):
         deviceInfos = controllers.getDevicesInformation()
         (wheelProcesses, player_controllers, deviceInfos) = wheelsUtils.reconfigureControllers(player_controllers, system, rom, metadata, deviceInfos)
@@ -303,8 +303,8 @@ def getHudBezel(system: Emulator, generator: Generator, rom: str, gameResolution
         eslog.info(f"bezel size read from {overlay_png_file}")
 
     # max cover proportion and ratio distortion
-    max_cover = 0.05 # 5%
-    max_ratio_delta = 0.01
+    max_cover = 0.50 # 50%
+    max_ratio_delta = 0.5
 
     screen_ratio = gameResolution["width"] / gameResolution["height"]
     bezel_ratio  = bezel_width / bezel_height
@@ -563,7 +563,7 @@ def launch() -> None:
             _profiler.disable()
             _profiler.dump_stats('/var/run/emulatorlauncher.prof')
 
-        time.sleep(1) # this seems to be required so that the gpu memory is restituated and available for es
+        time.sleep(0.5) # this seems to be required so that the gpu memory is restituated and available for es
         eslog.debug(f"Exiting configgen with status {exitcode!s}")
 
         exit(exitcode)

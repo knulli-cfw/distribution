@@ -1,9 +1,19 @@
 #!/bin/sh
 
+# Stored brightness value when the display is turned off.
+VALPATH=/var/run/$(basename "$0")
+
 XMAX=255
 XMIN=3
 
 CYCLESTEP=20 # % additional brightbess at each step
+
+get_percent() {
+    local VAL=$1
+    local PERCENT
+    PERCENT=$(echo "scale=2;${VAL}" "*" "100" / "${XMAX}" | bc -l)
+    LC_ALL=C printf '%.*f\n' 0 "${PERCENT}" # round
+}
 
 setValue() {
     NEWVAL=$1
@@ -16,7 +26,7 @@ setValue() {
 
 cycle() {
     X=$(brightness get)
-    FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
+    FVALUE=$(get_percent "$X")
     LC_ALL=C FVALUE=$(printf '%.*f\n' 0 "${FVALUE}") # round
     NEWVAL=$(echo "${FVALUE} + ${CYCLESTEP}" | bc)
     [ "${NEWVAL}" -gt 100 ] && NEWVAL=0
@@ -27,18 +37,27 @@ cycle() {
 }
 
 display_off() {
-    echo disable > /sys/kernel/debug/dispdbg/command
-    echo lcd0 > /sys/kernel/debug/dispdbg/name
-    sleep 0.1
-    echo 1 > /sys/kernel/debug/dispdbg/start
+    if [ ! -e "${VALPATH}" ]; then
+        ABS=$(brightness get)
+        PERCENT=$(get_percent "$ABS")
+
+        echo "${PERCENT}" > "${VALPATH}"
+        brightness set 0
+    fi
     exit 0
 }
 
 display_on() {
-    echo enable > /sys/kernel/debug/dispdbg/command
-    echo lcd0 > /sys/kernel/debug/dispdbg/name
-    sleep 0.1
-    echo 1 > /sys/kernel/debug/dispdbg/start
+    if [ -e "${VALPATH}" ]; then
+        PERCENT=$(cat "${VALPATH}")
+        if [ "$PERCENT" -eq 1 ]; then
+            NEWVAL=$XMIN
+        else
+            NEWVAL=$(expr "$PERCENT" "*" "$XMAX" / 100)
+        fi
+        setValue "$NEWVAL"
+        rm -f "${VALPATH}"
+    fi
     exit 0
 }
 
@@ -46,8 +65,7 @@ display_on() {
 if test $# = 0
 then
     X=$(brightness get)
-    FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
-    LC_ALL=C printf '%.*f\n' 0 "${FVALUE}" # round
+    get_percent "$X"
     exit 0
 fi
 
@@ -61,8 +79,12 @@ then
     elif [ "${1}" = "dispon" ]; then
         display_on
     else
-       NEWVAL=$(expr "${1}" "*" "${XMAX}" / 100)
-       setValue "${NEWVAL}" "${XMAX}"
+        if [ "$1" -eq 1 ]; then
+            NEWVAL=$XMIN
+        else
+            NEWVAL=$(expr "$1" "*" "$XMAX" / 100)
+        fi
+       setValue "${NEWVAL}"
        exit 0
     fi
 fi
@@ -90,7 +112,8 @@ then
         fi
     fi
 
-    setValue "${NEWVAL}" "${XMAX}"
+    [ "$NEWVAL" -eq "$X" ] && exit 0
+    setValue "${NEWVAL}"
     exit 0
 fi
 

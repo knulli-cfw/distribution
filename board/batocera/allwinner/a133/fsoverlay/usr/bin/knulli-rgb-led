@@ -298,6 +298,8 @@ stop() {
 
 # Starts the daemon
 start() {
+  kill $(cat $VAR_LED_ANIMATION_PID)
+  rm $VAR_LED_ANIMATION_PID
   startAnimation $1 $2 $3 $4 $5 &
   LED_PID=$!
   echo $LED_PID > $VAR_LED_ANIMATION_PID

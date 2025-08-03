@@ -10,6 +10,7 @@
 
 BOARD_DIR=$1
 BINARIES_DIR=$2
+ARCH_DIR=$(basename "$(dirname "$BINARIES_DIR")")
 
 set -e
 
@@ -73,7 +74,7 @@ build_date=$(date -Iseconds)
 [partitions]
 EOF
 
-    # Calculate signatures for partition files
+    # Calculate signatures for partition files (valid for h700 and a133 boards)
     local partition_files=(
         "${FIRMWARE_DIR}/partitions/boot0.img"
         "${FIRMWARE_DIR}/partitions/boot_package.fex"

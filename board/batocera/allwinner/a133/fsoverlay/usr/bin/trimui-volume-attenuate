@@ -1,0 +1,14 @@
+#!/bin/sh
+
+case "$1" in
+    headphone)
+        amixer -c 0 sset Headphone 4
+        ;;
+    speaker)
+        amixer -c 0 sset Headphone 1
+        ;;
+    *)
+        echo "Usage: $0 [speaker|headphone]" >&2
+        exit 1
+        ;;
+esac

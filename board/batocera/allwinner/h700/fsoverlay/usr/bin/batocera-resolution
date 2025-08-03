@@ -33,17 +33,14 @@ set_output() {
             echo switch1 > $DISPLAY/command
             if [ "$VIDEO" = "hdmi-480p" ]; then
                 echo 4 2 0 0 0x4 0x201 0 1 0 8 > $DISPLAY/param
-                sleep 0.1
                 echo 1 > $DISPLAY/start
                 fbset -g 640 480 640 960 32 -t 25175 40 24 32 9 96 2
             elif [ "$VIDEO" = "hdmi-720p" ]; then
                 echo 4 5 0 0 0x4 0x201 0 1 0 8 > $DISPLAY/param
-                sleep 0.1
                 echo 1 > $DISPLAY/start
                 fbset -g 1280 720 1280 1440 32 -t 13468 220 40 20 5 110 5
             elif [ "$VIDEO" = "hdmi-1080p" ] || [ "$VIDEO" = "" ]; then
                 echo 4 10 0 0 0x4 0x201 0 1 0 8 > $DISPLAY/param
-                sleep 0.1
                 echo 1 > $DISPLAY/start
                 fbset -g 1280 720 1280 1440 32 -t 13468 220 40 20 5 110 5
             fi
@@ -52,7 +49,6 @@ set_output() {
             echo disp0 > $DISPLAY/name
             echo switch > $DISPLAY/command
             echo 1 0 > $DISPLAY/param
-            sleep 0.1
             echo 1 > $DISPLAY/start
             if [ "$BOARD" = "rg28xx" ]; then
                 fbset -g 480 640 480 1280 32
@@ -81,11 +77,6 @@ case "${ACTION}" in
     "listModes")
         ;;
     "setOutput")
-        # Prevent running during shutdown/reboot. May be a better way of doing this, but for now this works.
-        if [ -f /var/run/shutdown.flag ] || [ -f /boot/restart.flag ]; then
-            exit 0
-        fi
-
         STATE=$(cat "$HDMI_STATE")
         if [ "$STATE" = "HDMI=1" ]; then
             set_output hdmi

@@ -8,12 +8,11 @@ XMIN=3
 
 CYCLESTEP=20 # % additional brightbess at each step
 
-getValue() {
-    if [ -e "${VALPATH}" ]; then
-        cat "${VALPATH}"
-    else
-        brightness get
-    fi
+get_percent() {
+    local VAL=$1
+    local PERCENT
+    PERCENT=$(echo "scale=2;${VAL}" "*" "100" / "${XMAX}" | bc -l)
+    LC_ALL=C printf '%.*f\n' 0 "${PERCENT}" # round
 }
 
 setValue() {
@@ -22,16 +21,12 @@ setValue() {
     test "${NEWVAL}" -lt 0         && NEWVAL=0
     test "${NEWVAL}" -gt "${XMAX}" && NEWVAL="${XMAX}"
 
-    if [ -e "${VALPATH}" ]; then
-        echo "${NEWVAL}" > "${VALPATH}"
-    else
-        brightness set "${NEWVAL}"
-    fi
+    brightness set "${NEWVAL}"
 }
 
 cycle() {
-    X=$(getValue)
-    FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
+    X=$(brightness get)
+    FVALUE=$(get_percent "$X")
     LC_ALL=C FVALUE=$(printf '%.*f\n' 0 "${FVALUE}") # round
     NEWVAL=$(echo "${FVALUE} + ${CYCLESTEP}" | bc)
     [ "${NEWVAL}" -gt 100 ] && NEWVAL=0
@@ -43,7 +38,10 @@ cycle() {
 
 display_off() {
     if [ ! -e "${VALPATH}" ]; then
-        brightness get > "${VALPATH}"
+        ABS=$(brightness get)
+        PERCENT=$(get_percent "$ABS")
+
+        echo "${PERCENT}" > "${VALPATH}"
         brightness set 0
     fi
     exit 0
@@ -51,7 +49,13 @@ display_off() {
 
 display_on() {
     if [ -e "${VALPATH}" ]; then
-        brightness set "$(cat "${VALPATH}")"
+        PERCENT=$(cat "${VALPATH}")
+        if [ "$PERCENT" -eq 1 ]; then
+            NEWVAL=$XMIN
+        else
+            NEWVAL=$(expr "$PERCENT" "*" "$XMAX" / 100)
+        fi
+        setValue "$NEWVAL"
         rm -f "${VALPATH}"
     fi
     exit 0
@@ -60,9 +64,8 @@ display_on() {
 # get
 if test $# = 0
 then
-    X=$(getValue)
-    FVALUE=$(echo "scale=3;${X}" "*" "100" / "${XMAX}" | bc)
-    LC_ALL=C printf '%.*f\n' 0 "${FVALUE}" # round
+    X=$(brightness get)
+    get_percent "$X"
     exit 0
 fi
 
@@ -76,8 +79,12 @@ then
     elif [ "${1}" = "dispon" ]; then
         display_on
     else
-       NEWVAL=$(expr "${1}" "*" "${XMAX}" / 100)
-       setValue "${NEWVAL}" "${XMAX}"
+        if [ "$1" -eq 1 ]; then
+            NEWVAL=$XMIN
+        else
+            NEWVAL=$(expr "$1" "*" "$XMAX" / 100)
+        fi
+       setValue "${NEWVAL}"
        exit 0
     fi
 fi
@@ -85,7 +92,7 @@ fi
 # set +/-
 if test $# = 2
 then
-    X=$(getValue)
+    X=$(brightness get)
     DELTA=$(expr "${2}" '*' ${XMAX} / 100)
 
     if [ "${1}" = "+" ]; then
@@ -105,7 +112,8 @@ then
         fi
     fi
 
-    setValue "${NEWVAL}" "${XMAX}"
+    [ "$NEWVAL" -eq "$X" ] && exit 0
+    setValue "${NEWVAL}"
     exit 0
 fi
 

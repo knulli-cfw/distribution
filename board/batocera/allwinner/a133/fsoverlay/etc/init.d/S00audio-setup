@@ -1,0 +1,25 @@
+#!/bin/sh
+
+BOARD=$(cat /boot/boot/batocera.board)
+if [ "$BOARD" != "powkiddy-v90s" ] && [ "$BOARD" != "powkiddy-v20" ]; then
+    exit 1
+fi
+
+case "$1" in
+    start)
+        state=`switch-state SW_HEADPHONE_INSERT 2>/dev/null`
+        echo Audio jack state: $state
+        if [ "$state" = "1" ]; then
+            batocera-audio set headphone
+        else
+            batocera-audio set speakers
+        fi
+        amixer -D hw:audiocodec sset LINEOUT on
+        ;;
+    stop)
+        # do nothing
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+esac

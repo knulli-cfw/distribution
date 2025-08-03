@@ -15,6 +15,7 @@ RUN dpkg --add-architecture i386 && \
 		texinfo \
 		zip \
 		pigz \
+		xdelta3 \
 		default-jre \
 		imagemagick \
 		subversion \

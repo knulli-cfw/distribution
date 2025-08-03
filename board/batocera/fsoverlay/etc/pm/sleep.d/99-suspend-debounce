@@ -1,0 +1,14 @@
+#!/bin/sh
+
+DEBOUNCE_FILE="/var/run/suspend.debounce"
+
+case "$1" in
+    suspend)
+        touch "$DEBOUNCE_FILE"
+        ;;
+    resume|thaw)
+        ( sleep 0.5 && rm -f "$DEBOUNCE_FILE" ) &
+        ;;
+esac
+
+exit 0

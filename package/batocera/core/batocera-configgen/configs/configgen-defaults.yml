@@ -356,6 +356,12 @@ moonlight:
   options:
     bezel: none
     hud_support: false
+mpv:
+  emulator: mpv
+  core:     mpv
+  options:
+    bezel: none
+    hud_support: false
 mrboom:
   emulator: libretro
   core:     mrboom

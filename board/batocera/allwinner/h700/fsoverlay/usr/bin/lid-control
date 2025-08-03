@@ -65,6 +65,8 @@ do_close() {
     fi
 }
 
+sleep 0.5 # Waits for battery-saver because hall is a detected input (if inactive and screen is dimmed or suspend while lid sclose)
+
 case "$1" in
     open)
         do_open

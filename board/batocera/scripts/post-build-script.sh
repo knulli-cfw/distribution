@@ -44,6 +44,12 @@ rm -f "${TARGET_DIR}/etc/init.d/S35iptables" || exit 1
 # we don't want the hotkeygen startup script
 rm -f "${TARGET_DIR}/etc/init.d/S90hotkeygen" || exit 1
 
+# we don't want the samba startup script (it's now a service)
+rm -f "${TARGET_DIR}/etc/init.d/S91smb" || exit 1
+
+# we don't want the wsdd startup script (it's now part of the samba service)
+rm -f "${TARGET_DIR}/etc/init.d/S93wsdd" || exit 1
+
 # we have custom urandom scripts
 rm -f "${TARGET_DIR}/etc/init.d/S20urandom" || exit 1
 

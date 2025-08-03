@@ -1,0 +1,83 @@
+#!/bin/sh
+
+DAEMON_WSDD="/usr/bin/wsdd"
+PID_WSDD="/var/run/wsdd.pid"
+LOG_WSDD="/userdata/system/logs/wsdd.log"
+
+CONFIGFILE="/etc/samba/smb.conf"
+SECURE_CONFIGFILE="/etc/samba/smb-secure.conf"
+LOCKFILE="/var/lock/subsys/smb"
+
+# Determine correct config
+if [ "$(/usr/bin/batocera-settings-get system.security.enabled)" = "1" ]; then
+    CONFIGFILE="$SECURE_CONFIGFILE"
+fi
+
+# Make directories.
+mkdir -p /var/cache/samba
+mkdir -p /var/log/samba
+mkdir -p /var/lock/subsys
+mkdir -p /var/run/samba
+
+start() {
+    echo "Starting Samba..."
+    enabled="$(/usr/bin/batocera-settings-get system.samba.enabled)"
+    if [ "$enabled" = "0" ]; then
+        echo "SMB services: disabled"
+        exit 0
+    fi
+
+    # Start Samba daemons
+    echo -n "Starting SMB services: "
+    smbd -D --configfile="$CONFIGFILE"
+    echo "done"
+    echo -n "Starting NMB services: "
+    nmbd -D --configfile="$CONFIGFILE"
+    echo "done"
+    touch "$LOCKFILE"
+
+    echo "Starting WSDD..."
+    if [ -x "$DAEMON_WSDD" ]; then
+        # Determine workgroup
+        if command -v testparm >/dev/null 2>&1; then
+            GROUP=$(testparm -s --parameter-name workgroup "$CONFIGFILE" 2>/dev/null)
+        else
+            GROUP=$(grep -i '^\s*workgroup\s*=' "$CONFIGFILE" | cut -f2 -d= | tr -d '[:blank:]')
+        fi
+
+        start-stop-daemon --start --background --make-pidfile \
+            --pidfile "$PID_WSDD" --output "$LOG_WSDD" \
+            --exec "$DAEMON_WSDD" -- ${GROUP:+-w "$GROUP"}
+    else
+        echo "WSDD not found, skipping..."
+    fi
+}
+
+stop() {
+    echo "Stopping WSDD..."
+    start-stop-daemon --stop --pidfile "$PID_WSDD" --remove-pidfile
+
+    echo -n "Shutting down SMB services: "
+    kill -9 $(pidof smbd 2>/dev/null) 2>/dev/null
+    rm -f /var/run/samba/smbd.pid
+    echo "done"
+    echo -n "Shutting down NMB services: "
+    kill -9 $(pidof nmbd 2>/dev/null) 2>/dev/null
+    rm -f /var/run/samba/nmbd.pid
+    echo "done"
+
+    rm -f "$LOCKFILE"
+}
+
+case "$1" in
+    start)
+        start ;;
+    stop)
+        stop ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+        ;;
+esac
+
+exit 0

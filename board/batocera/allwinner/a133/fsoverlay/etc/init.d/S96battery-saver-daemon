@@ -1,8 +1,11 @@
 #!/bin/sh
 
 DAEMON=/usr/bin/battery-saver.sh
-PIDFILE=/var/run/battery-saver.pid
+BATTSAVER_DIR="/var/run/battery-saver/"
+PIDFILE=/var/run/battery-saver/battery-saver.pid
 DAEMON_NAME=$(basename "$DAEMON")
+
+mkdir -p "$BATTSAVER_DIR"
 
 start_daemon() {
     echo "Starting $DAEMON_NAME."

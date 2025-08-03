@@ -1,0 +1,33 @@
+#!/bin/sh
+
+COUNTER_FILE="/var/run/knulli-softreset.count"
+TIMESTAMP_FILE="/var/run/knulli-softreset.last"
+DEBOUNCE_FILE="/var/run/knulli-reset.debounce"
+
+WINDOW=0.5 # Threshold for double-press
+DEBOUNCE_TIME=5 # Time after resetting script will not run
+
+now=$(cut -d ' ' -f 1 /proc/uptime)
+
+read -r count < "$COUNTER_FILE" 2>/dev/null || count=0
+read -r last < "$TIMESTAMP_FILE" 2>/dev/null || last=0
+read -r last_reset < "$DEBOUNCE_FILE" 2>/dev/null || last_reset=0
+
+elapsed=$(awk -v n="$now" -v l="$last" 'BEGIN { print n - l }')
+since_last_reset=$(awk -v n="$now" -v r="$last_reset" 'BEGIN { print n - r }')
+
+# Exit if within debounce window
+[ "$(awk -v s="$since_last_reset" -v d="$DEBOUNCE_TIME" 'BEGIN { print (s < d) }')" -eq 1 ] && exit 0
+
+# Trigger reset on valid double-press
+if [ "$count" -eq 1 ] && [ "$(awk -v e="$elapsed" -v w="$WINDOW" 'BEGIN { print (e <= w) }')" -eq 1 ]; then
+    : > "$COUNTER_FILE"
+    echo "$now" > "$DEBOUNCE_FILE"
+    batocera-es-swissknife --emukill
+    batocera-es-swissknife --restart
+    exit 0
+fi
+
+# Reset counter and update timestamp if not within window
+echo 1 > "$COUNTER_FILE"
+echo "$now" > "$TIMESTAMP_FILE"
