@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Check if Syncthing service is enabled, abort if not.
+ENABLED_SERVICES="$(/usr/bin/batocera-settings-get system.services)"
+if [[ ${ENABLED_SERVICES} != *"syncthing"* ]];then
+  echo "Syncthing not running. Aborting."
+  exit 0
+fi
+
+# Retrieve syncthing API key from config file.
+SYNCTHING_API_KEY=$(cat ~/configs/syncthing/config.xml | sed -n 's/.*<apikey>\([^<]*\).*/\1/p')
+
+# Retrieve folder IDs from config file.
+FOLDER_ID_MULTILINE_STRING=$(cat ~/configs/syncthing/config.xml | sed -n 's/.*<folder id="\([^"]\+\).*/\1/p')
+
+# Store folder IDs in array.
+FOLDER_IDS=()
+while read FOLDER_ID; do
+  FOLDER_IDS+=( "$FOLDER_ID" )
+done <<< $FOLDER_ID_MULTILINE_STRING
+
+# Send notification that Syncthing is scanning. (Helpful in case device freezes.)
+curl -s http://localhost:1234/notify -d "SYNCTHING: Scanning for changed files." >/dev/null
+
+# Start sync.
+curl --header "X-Api-Key: $SYNCTHING_API_KEY" -X POST http://127.0.0.1:8384/rest/db/scan
+
+# Assume there's at least one file to upload now.
+REMAINING_TRANSFERS=1
+while [ $REMAINING_TRANSFERS -gt 0 ] ; do
+  # Assume all files have been uploaded now.
+  REMAINING_TRANSFERS=0
+  CONNECTED_DEVICES=$(curl --silent --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET http://127.0.0.1:8384/rest/system/connections | jq ".connections | to_entries | .[] | select(.value.connected==true) | select(.value.paused==false) | .key" | tr -d '"')
+  # For every shared folder on this device...
+  for FOLDER_ID in ${FOLDER_IDS[@]}; do
+  NEEDED_FILES_SELF=$(curl -s --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET "http://127.0.0.1:8384/rest/db/need?folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+  NEEDED_FILES_SELF_COUNT=$(echo "$NEEDED_FILES_SELF" | sed '/^\s*$/d' | wc -l)
+  REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_SELF_COUNT))
+  while read CONNECTED_DEVICE_ID; do
+    # ...retrieve file names of remaining uploads (but exclude sync-conflict files!)...
+    NEEDED_FILES_OTHERS=$(curl -s --header "X-Api-Key: 9hVmFghbEycxMbTrkptgunTkkJLaF7db" -X GET "http://127.0.0.1:8384/rest/db/remoteneed?device=$CONNECTED_DEVICE_ID&folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+    NEEDED_FILES_OTHERS_COUNT=$(echo "$NEEDED_FILES_OTHERS" | sed '/^\s*$/d' | wc -l)
+    # ...and update remaining updates based on how many files are queued.
+    REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_OTHERS_COUNT))
+  done <<< $CONNECTED_DEVICES
+  done
+  # If there's still files remaining, inform ES and wait 5 seconds before bothering the API again.
+  if [ $REMAINING_TRANSFERS -gt 0 ] ; then
+  echo "Remaining: $REMAINING_TRANSFERS"
+  curl -s http://localhost:1234/notify -d "SYNCTHING: $REMAINING_TRANSFERS files remaining for transfer." >/dev/null
+  sleep 5
+  fi
+done
+
+# Send notification that Sync is done.
+echo "All files uploaded."
+curl -s http://localhost:1234/notify -d "SYNCTHING: All files have been synced." >/dev/null
+
+exit 0
