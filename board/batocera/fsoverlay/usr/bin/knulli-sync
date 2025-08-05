@@ -7,6 +7,19 @@ if [[ ${ENABLED_SERVICES} != *"syncthing"* ]];then
   exit 0
 fi
 
+
+VAR_SYNC_PID="/var/run/knulli-sync.pid"
+
+# If script is already running, kill it before starting another
+if [ -f $VAR_SYNC_PID ]; then
+  kill $(cat $VAR_SYNC_PID)
+  echo "Script was already running - terminated other instance."
+  rm $VAR_SYNC_PID
+fi
+
+# Register running script
+echo $$ > $VAR_SYNC_PID
+
 # Retrieve syncthing API key from config file.
 SYNCTHING_API_KEY=$(cat ~/configs/syncthing/config.xml | sed -n 's/.*<apikey>\([^<]*\).*/\1/p')
 
@@ -20,40 +33,93 @@ while read FOLDER_ID; do
 done <<< $FOLDER_ID_MULTILINE_STRING
 
 # Send notification that Syncthing is scanning. (Helpful in case device freezes.)
+echo "Scanning of local folders..."
 curl -s http://localhost:1234/notify -d "SYNCTHING: Scanning for changed files." >/dev/null
 
 # Start sync.
 curl --header "X-Api-Key: $SYNCTHING_API_KEY" -X POST http://127.0.0.1:8384/rest/db/scan
 
 # Assume there's at least one file to upload now.
+echo "Checking for connected devices..."
 REMAINING_TRANSFERS=1
 while [ $REMAINING_TRANSFERS -gt 0 ] ; do
   # Assume all files have been uploaded now.
   REMAINING_TRANSFERS=0
-  CONNECTED_DEVICES=$(curl --silent --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET http://127.0.0.1:8384/rest/system/connections | jq ".connections | to_entries | .[] | select(.value.connected==true) | select(.value.paused==false) | .key" | tr -d '"')
+  DEVICES_ALIVE=0
+  CONNECTED_DEVICES_JSON=$(curl --silent --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET http://127.0.0.1:8384/rest/system/connections)
+
+  IP_ADDRESSES=$(echo "$CONNECTED_DEVICES_JSON" | jq ".connections | to_entries | .[] | select(.value.connected==true) | select(.value.paused==false) | .value.address" | tr -d '"' | sed -n 's/\([0-9\.]*\).*/\1/p')
+
   # For every shared folder on this device...
   for FOLDER_ID in ${FOLDER_IDS[@]}; do
-  NEEDED_FILES_SELF=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/need?folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
-  NEEDED_FILES_SELF_COUNT=$(echo "$NEEDED_FILES_SELF" | sed '/^\s*$/d' | wc -l)
-  REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_SELF_COUNT))
-  while read CONNECTED_DEVICE_ID; do
-    # ...retrieve file names of remaining uploads (but exclude sync-conflict files!)...
-    NEEDED_FILES_OTHERS=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/remoteneed?device=$CONNECTED_DEVICE_ID&folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
-    NEEDED_FILES_OTHERS_COUNT=$(echo "$NEEDED_FILES_OTHERS" | sed '/^\s*$/d' | wc -l)
-    # ...and update remaining updates based on how many files are queued.
-    REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_OTHERS_COUNT))
-  done <<< $CONNECTED_DEVICES
+    echo "Determining remaning transfers for folder $FOLDER_ID..."
+    
+    # For every known connected device IP address
+    while read IP_ADDRESS; do
+
+      CONNECTED_DEVICE_ID=$(echo "$CONNECTED_DEVICES_JSON" | jq ".connections | to_entries | .[] | select(.value.address | contains(\"$IP_ADDRESS\")) | select(.value.connected==true) | select(.value.paused==false) | .key" | tr -d '"')
+
+      # If device ID exists
+      if [ ! -z "$CONNECTED_DEVICE_ID" ] && [ ! -z "$IP_ADDRESS" ]; then
+
+        # If device is alive
+        if ping -c 1 "$IP_ADDRESS" &> /dev/null
+        then
+          DEVICES_ALIVE=$((DEVICES_ALIVE+1))
+          echo "Device $CONNECTED_DEVICE_ID ($IP_ADDRESS) is alive - checking for remaining needed files."
+  
+          # ...retrieve file names of remaining uploads (but exclude sync-conflict files!)...
+          NEEDED_FILES_OTHERS=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/remoteneed?device=$CONNECTED_DEVICE_ID&folder=$FOLDER_ID" | jq ".files[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+          NEEDED_FILES_OTHERS_COUNT=$(echo "$NEEDED_FILES_OTHERS" | sed '/^\s*$/d' | wc -l)
+          echo "Device $CONNECTED_DEVICE_ID needs $NEEDED_FILES_OTHERS_COUNT files"
+  
+          # ...and update remaining updates based on how many files are queued.
+          REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $NEEDED_FILES_OTHERS_COUNT))
+        
+        # If device is not alive anymore
+        else
+          echo "Device $CONNECTED_DEVICE_ID ($IP_ADDRESS) is not alive - skipped."
+          curl -s http://localhost:1234/notify -d "SYNCTHING: Device ($IP_ADDRESS) is currently not available for sync." >/dev/null
+        fi
+      
+      fi
+
+    done <<< $IP_ADDRESSES
+
+    # If at least one device for this folder is alive, take own needed files into account
+    if [ $DEVICES_ALIVE -gt 0 ]; then
+      SELF_NEEDED_FILES_JSON=$(curl -s --header "X-Api-Key: $SYNCTHING_API_KEY" -X GET "http://127.0.0.1:8384/rest/db/need?folder=$FOLDER_ID")
+
+      TRANSFERS_IN_PROGRESS=$(echo "$SELF_NEEDED_FILES_JSON" | jq ".progress[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+      TRANSFERS_IN_PROGRESS_COUNT=$(echo "$TRANSFERS_IN_PROGRESS" | sed '/^\s*$/d' | wc -l)
+      REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $TRANSFERS_IN_PROGRESS_COUNT))
+      echo "Host has $TRANSFERS_IN_PROGRESS_COUNT transfers in progress."
+
+      TRANSFERS_QUEUED=$(echo "$SELF_NEEDED_FILES_JSON" | jq ".queued[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+      TRANSFERS_QUEUED_COUNT=$(echo "$TRANSFERS_QUEUED" | sed '/^\s*$/d' | wc -l)
+      REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $TRANSFERS_QUEUED_COUNT))
+      echo "Host has $TRANSFERS_QUEUED_COUNT transfers queued."
+
+      TRANSFERS_REST=$(echo "$SELF_NEEDED_FILES_JSON" | jq ".rest[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
+      TRANSFERS_REST_COUNT=$(echo "$TRANSFERS_QUEUED" | sed '/^\s*$/d' | wc -l)
+      REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $TRANSFERS_REST_COUNT))
+      echo "Host has $TRANSFERS_REST_COUNT waiting to be queued."
+    fi
+
   done
-  # If there's still files remaining, inform ES and wait 5 seconds before bothering the API again.
+  # If there's still files remaining, inform ES and wait 10 seconds before bothering the API again.
   if [ $REMAINING_TRANSFERS -gt 0 ] ; then
-  echo "Remaining: $REMAINING_TRANSFERS"
-  curl -s http://localhost:1234/notify -d "SYNCTHING: $REMAINING_TRANSFERS files remaining for transfer." >/dev/null
-  sleep 5
+  echo "Remaining transfers (total): $REMAINING_TRANSFERS"
+  curl -s http://localhost:1234/notify -d "SYNCTHING: $REMAINING_TRANSFERS files queued for transfer." >/dev/null
+  sleep 10
   fi
 done
 
 # Send notification that Sync is done.
-echo "All files uploaded."
-curl -s http://localhost:1234/notify -d "SYNCTHING: All files have been synced." >/dev/null
+echo "No more transfers in progress."
+curl -s http://localhost:1234/notify -d "SYNCTHING: No more transfers in progress." >/dev/null
+
+# Deregister script
+rm $VAR_SYNC_PID
 
 exit 0
