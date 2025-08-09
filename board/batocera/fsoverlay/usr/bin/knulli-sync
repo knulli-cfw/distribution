@@ -32,12 +32,33 @@ while read FOLDER_ID; do
   FOLDER_IDS+=( "$FOLDER_ID" )
 done <<< $FOLDER_ID_MULTILINE_STRING
 
-# Send notification that Syncthing is scanning. (Helpful in case device freezes.)
-echo "Scanning of local folders..."
-curl -s http://localhost:1234/notify -d "SYNCTHING: Scanning for changed files." >/dev/null
+#fsWatcherEnabled
 
-# Start sync.
-curl --header "X-Api-Key: $SYNCTHING_API_KEY" -X POST http://127.0.0.1:8384/rest/db/scan
+SCAN_REQUIRED=0
+
+
+# Launch manual scan if file system is isn't ext4
+FILESYSTEM=$(df -Th | grep /userdata)
+if [[ $FILESYSTEM != *" ext4 "* ]]; then
+  SCAN_REQUIRED=1
+fi
+
+if [ $SCAN_REQUIRED -eq 0 ]; then
+  FOLDERS_WITH_WATCHER_DISABLED=$(cat ~/configs/syncthing/config.xml | sed -n 's/.*<folder id="\([^"]\+\).*fsWatcherEnabled="false".*/\1/p')
+  FOLDERS_WITH_WATCHER_DISABLED_COUNT=$(echo "$FOLDERS_WITH_WATCHER_DISABLED" | sed '/^\s*$/d' | wc -l)
+  if [ $FOLDERS_WITH_WATCHER_DISABLED_COUNT -gt 0 ]; then
+    SCAN_REQUIRED=1
+  fi
+fi
+
+if [ $SCAN_REQUIRED -eq 1 ]; then
+  # Send notification that Syncthing is scanning. (Helpful in case device freezes.)
+  echo "Scanning of local folders..."
+  curl -s http://localhost:1234/notify -d "SYNCTHING: Scanning for changed files." >/dev/null
+  
+  # Start sync.
+  curl --header "X-Api-Key: $SYNCTHING_API_KEY" -X POST http://127.0.0.1:8384/rest/db/scan
+fi
 
 # Assume there's at least one file to upload now.
 echo "Checking for connected devices..."
@@ -101,7 +122,7 @@ while [ $REMAINING_TRANSFERS -gt 0 ] ; do
       echo "Host has $TRANSFERS_QUEUED_COUNT transfers queued."
 
       TRANSFERS_REST=$(echo "$SELF_NEEDED_FILES_JSON" | jq ".rest[] | select(.name | (contains(\".sync-conflict-\") | not)) | .name" | tr -d '"')
-      TRANSFERS_REST_COUNT=$(echo "$TRANSFERS_QUEUED" | sed '/^\s*$/d' | wc -l)
+      TRANSFERS_REST_COUNT=$(echo "$TRANSFERS_REST" | sed '/^\s*$/d' | wc -l)
       REMAINING_TRANSFERS=$(($REMAINING_TRANSFERS + $TRANSFERS_REST_COUNT))
       echo "Host has $TRANSFERS_REST_COUNT waiting to be queued."
     fi
