@@ -8,7 +8,7 @@
 #    ##                                           ##  #
 #    ############################################     #
 #    ############################################     #
-# v2.3                                                #
+# v2.4                                                #
 #######################################################
 
 BATTSAVER_DIR="/var/run/battery-saver/"
@@ -32,14 +32,23 @@ echo "1" > "$STATE_FLAG"
 
 # Called on exit
 cleanup() {
-    if [ "$STATE" = "inactive" ] && [ -n "$BRIGHTNESS" ]; then
-        batocera-brightness "$BRIGHTNESS"
-    fi
+    if [[ "$STATE" == "inactive" ]]; then
+        # Save pre-dimmed brightness if dispoff was called during shutdown
+        if [[ "$MODE" == "dim" ]] && [[ -f /var/run/batocera-brightness ]]; then
+            echo "$BRIGHTNESS" > "/var/run/batocera-brightness"
+        fi
 
-    # Restore audio and state if exit while inactive but not duriung shutdown process
-    if [ ! -f /var/run/shutdown.flag ]; then
-        batocera-audio setSystemVolume unmute
-        echo "1" > "$STATE_FLAG"
+        # Restore if exit while inactive but not duriung shutdown process
+        if [[ ! -f /var/run/shutdown.flag ]]; then
+            if [[ "$MODE" == "dim" ]]; then
+                batocera-brightness "$BRIGHTNESS"
+            elif [[ "$MODE" == "dispoff" ]]; then
+                batocera-brightness dispon
+            fi
+
+            batocera-audio setSystemVolume unmute
+            echo "1" > "$STATE_FLAG"
+        fi
     fi
 
     rm -f "$LOCK"
