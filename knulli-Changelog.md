@@ -53,7 +53,7 @@
     - Updated Art-Book-Next theme
     - Updated ES-Knulli theme
     - Filtering Knulli-compatible themes
-    - Added volume attenuation controls on A133
+    - Automatically adjusting volume attenuation when using headphones for A133
     - Added support for additional file types in MPV: M3U, MP3, FLAC
     - Prevented MPV from attempting to apply bezels or HUD overlays
     - Improved audio management across various devices
