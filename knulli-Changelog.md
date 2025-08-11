@@ -1,3 +1,65 @@
+# Knulli - Gladiator II - (2025XXXX)
+
+## ChangeLog
+
+### ADDED ###
+- Devices support
+    - support for RG34XX SP
+    - support for RG35XX Pro
+    - Added preliminary support for the Powkiddy V90S
+- OS features
+    - OTA (Over-The-Air) update support
+    - Introduced soft reset function
+    - Introduced disk check utility
+    - Introduced factory reset script functionality
+    - Introduced Samba (SMB, Windows Network) as a dedicated service
+    - Implemented telemetry gathering system
+- Emulation features
+    - bezel support for several standalone emulators on H700 devices
+    - introduced new *Default-Knulli-SP* bezel decoration set for GBA on 4:3 SP displays
+
+### FIXED ###
+- OS features
+    - Removed MTP (Media Transfer Protocol) support system-wide
+    - Fixed auto-assignment for USB controllers
+    - Enhanced suspend/resume functionality across multiple devices
+    - Improved USB and Bluetooth management during suspend
+    - Added power-off improvements for various devices
+    - Updated battery management and power saving features
+    - Improved lid control mechanisms
+    - Cardinal snapping fixes for RG-CubeXX, RG35XX-H, RG40XX-H, and RG40XX-V
+    - Fixed reversed L/R audio channels on A133
+    - Fixed RGB achievement effects on A133
+    - Fixed non-working toggle switch functionality on TrimUI Smart Pro
+- Emulation features
+    - resolved issues with standalone emulators crashing when bezel decorations are enabled on A133 devices
+    - Fixed PPSSPP glCopyImage segfault on A133/PowerVR GE8300 with cleaned-up patches
+    - Added workaround for Flycast/vl/xtreme libretro cores compatibility (for Dreamcast, NAOMI, Atomiswave, NAOMI2) on A133
+    - Changed default Korean font
+    - Replaced JP-only font with full CJK support using WenQuanYi Micro Hei
+    - Set CJK fonts based on RetroArch user language or system locale
+    - Fixed RetroArch OSD CJK font display issues
+
+### CHANGED / IMPROVED ###
+- OS features
+    - Enhanced suspend/resume functionality and power management
+    - Improved battery saver functionality
+    - Enhanced brightness control and soft reset functionality
+    - Updated Bluetooth service management
+    - Improved EmulationStation audio wait functionality
+    - Multi-resolution bezel sets now use consistent aspect-ratio naming patterns
+    - Updated Art-Book-Next theme
+    - Updated ES-Knulli theme
+    - Filtering Knulli-compatible themes
+    - Added volume attenuation controls on A133
+    - Added support for additional file types in MPV: M3U, MP3, FLAC
+    - Prevented MPV from attempting to apply bezels or HUD overlays
+    - Improved audio management across various devices
+    - Added hotspot support detection with has_ap_mode check for NetPlay
+    - Updated PortMaster integration to preserve previous installations
+- Emulation features
+    - Changed rewind granularity settings for better performance
+
 # Knulli - Gladiator - (20250505)
 
 ## ChangeLog
