@@ -6,7 +6,7 @@
 - Devices support
     - support for RG34XX SP
     - support for RG35XX Pro
-    - Added preliminary support for the Powkiddy V90S
+    - Added preliminary support for the Powkiddy V90S and V20
 - OS features
     - OTA (Over-The-Air) update support
     - Introduced soft reset function
