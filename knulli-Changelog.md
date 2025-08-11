@@ -31,6 +31,8 @@
     - Fixed reversed L/R audio channels on A133
     - Fixed RGB achievement effects on A133
     - Fixed non-working toggle switch functionality on TrimUI Smart Pro
+    - Fixed Bluetooth being enabled after boot on A133 despite being disabled in settings
+    - Fixed issues with devices not recovering from display off mode (now simply turning brightness to 0 to disable display)
 - Emulation features
     - resolved issues with standalone emulators crashing when bezel decorations are enabled on A133 devices
     - Fixed PPSSPP glCopyImage segfault on A133/PowerVR GE8300 with cleaned-up patches
@@ -55,8 +57,9 @@
     - Added support for additional file types in MPV: M3U, MP3, FLAC
     - Prevented MPV from attempting to apply bezels or HUD overlays
     - Improved audio management across various devices
-    - Added hotspot support detection with has_ap_mode check for NetPlay
+    - Added hotspot support detection with `has_ap_mode` check for NetPlay
     - Updated PortMaster integration to preserve previous installations
+    - Faster game launch
 - Emulation features
     - Changed rewind granularity settings for better performance
 
@@ -85,7 +88,7 @@
     - Automatically switches between Bluetooth audio and built-in speaker output when devices connect/disconnect
     - Added date and time display to the EmulationStation screensaver
     - Added Korean input support to the EmulationStation on-screen popup keyboard
-    - Applied 60 Hz patches for RG35XX SP, RG34XX, and RG CubeXX (thank you, [@TheGammaSqueeze](https://github.com/TheGammaSqueeze/))
+    - Adjusted refresh rate to 60 Hz on RG35XX SP, RG34XX, RG34XX SP, and RG CubeXX (thank you, [@TheGammaSqueeze](https://github.com/TheGammaSqueeze/))
     - Added single rainbow RGB mode to TrimUI Brick and Smart Pro
     - Added MPV video player
         - Disabled power saving while MPV is playing videos
