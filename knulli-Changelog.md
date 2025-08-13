@@ -8,15 +8,15 @@
     - support for RG35XX Pro
     - Added preliminary support for the Powkiddy V90S and V20
 - OS features
-      - Introduced [OTA (Over-The-Air) update support](https://knulli.org/play/update): Knulli now supports OTA updates, these update not only the root file system, but the internal partitions, so changes like kernel updates are being taken care of. Some important details about OTA:
-          - Stable builds will get OTA updates for fixes but no major changes. Expect a 3-4 month update cycle
-          - Alpha builds will get frequent OTA updates (limited to [Knulli supporters](https://knulli.org/community/contribute/))
+    - Introduced [OTA (Over-The-Air) update support](https://knulli.org/play/update): Knulli now supports OTA updates, these update not only the root file system, but the internal partitions, so changes like kernel updates are being taken care of. Some important details about OTA:
+      - Stable builds will get OTA updates for fixes but no major changes. Expect a 3-4 month update cycle
+      - Alpha builds will get frequent OTA updates (limited to [Knulli supporters](https://knulli.org/community/contribute/))
     - Added [soft reset function hotkey shortcut](https://knulli.org/play/hotkey-shortcuts): Added new soft reset feature where holding hotkey and double tapping start on the device will force exit any running application and restart ES
     - Added disk check utility: Added a built in function to check sd card file system consistency
     - Added [factory reset script functionality](https://knulli.org/configure/reset-to-factory-settings): This allows to reset the systems folder when you update. You can do this if you have updated and some things are not working as expected. This option creates a backup of your current system folder in case you want to recover some data. It also adopts your previous PortMaster installation.
     - Introduced [Samba (SMB, Windows Network) as a dedicated service](https://knulli.org/play/add-games/network-transfer): Samba is not an optional service, you can enable it in ``Settings -> System Settings -> SAMBA``
     - Added device statistics gathering support: This helps us understand the adoption rate of the different builds as well as the overall interest on each particular model. Of course you can disable telemetry data if you desire to do so (Settings -> Device Settings -> Disable Telemetry)
-- Emulation features
+  - Emulation features
     - bezel support for several standalone emulators on H700 devices
     - introduced new *Default-Knulli-SP* bezel decoration set for GBA on 4:3 SP displays
 
