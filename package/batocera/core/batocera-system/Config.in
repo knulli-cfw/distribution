@@ -551,11 +551,12 @@ config BR2_TARGET_BATOCERA_IMAGES_DEFINITIONS
 	default "allwinner/h5/tritium-h5 allwinner/h5/orangepi-pc2"					if BR2_PACKAGE_BATOCERA_TARGET_H5
 	default "allwinner/h6/orangepi-3-lts allwinner/h6/orangepi-3 allwinner/h6/orangepi-one-plus"	if BR2_PACKAGE_BATOCERA_TARGET_H6
 	default "allwinner/h616/orangepi-zero2 allwinner/h616/orangepi-zero3 allwinner/h616/x96-mate"	if BR2_PACKAGE_BATOCERA_TARGET_H616
-	default "allwinner/h700/rg35xx-sp allwinner/h700/rg35xx-plus allwinner/h700/rg35xx-h allwinner/h700/rg40xx-h allwinner/h700/rg40xx-v allwinner/h700/rg-cubexx allwinner/h700/rg28xx allwinner/h700/rg34xx allwinner/h700/rg34xx-sp allwinner/h700/rg35xx-pro" \
+#	default "allwinner/h700/rg35xx-sp allwinner/h700/rg35xx-plus allwinner/h700/rg35xx-h allwinner/h700/rg40xx-h allwinner/h700/rg40xx-v allwinner/h700/rg-cubexx allwinner/h700/rg28xx allwinner/h700/rg34xx allwinner/h700/rg34xx-sp allwinner/h700/rg35xx-pro" \
+	default "allwinner/h700/rg-cubexx" \
 													if BR2_PACKAGE_BATOCERA_TARGET_H700
-	default "allwinner/a133/trimui-smart-pro allwinner/a133/trimui-brick allwinner/a133/magicx-zero-28 allwinner/a133/powkiddy-v90s allwinner/a133/powkiddy-v20" \
+#	default "allwinner/a133/trimui-smart-pro allwinner/a133/trimui-brick allwinner/a133/magicx-zero-28 allwinner/a133/powkiddy-v90s allwinner/a133/powkiddy-v20" \
+	default "allwinner/a133/trimui-smart-pro allwinner/a133/trimui-brick allwinner/a133/powkiddy-v90s allwinner/a133/powkiddy-v20" \
 													if BR2_PACKAGE_BATOCERA_TARGET_A133
-	default "allwinner/a133/powkiddy-v90s allwinner/a133/powkiddy-v20"				if BR2_PACKAGE_BATOCERA_TARGET_A133
 	default "allwinner/r16/miyoo-a30"								if BR2_PACKAGE_BATOCERA_TARGET_SUNXI_R16
 	default "actions/atm7039/rg35xx"								if BR2_PACKAGE_BATOCERA_TARGET_ATM7039
 	default "amlogic/s812"										if BR2_PACKAGE_BATOCERA_TARGET_S812
@@ -572,7 +573,8 @@ config BR2_TARGET_BATOCERA_IMAGES_DEFINITIONS
 													if BR2_PACKAGE_BATOCERA_TARGET_S905
 	default "rockchip/rk3399/orangepi-800 rockchip/rk3399/rg552 rockchip/rk3399/rockpro64 rockchip/rk3399/rock960 rockchip/rk3399/orangepi4-lts rockchip/rk3399/rock-pi-4 rockchip/rk3399/nanopi-m4v2 rockchip/rk3399/hugsun-x99" \
 													if BR2_PACKAGE_BATOCERA_TARGET_RK3399
-	default "rockchip/rk3566/miyoo-flip rockchip/rk3566/powkiddy-rgb30 rockchip/rk3566/rg-arc-s rockchip/rk3566/powkiddy-x55" \
+#	default "rockchip/rk3566/miyoo-flip rockchip/rk3566/powkiddy-rgb30 rockchip/rk3566/rg-arc-s rockchip/rk3566/powkiddy-x55" \
+	default "rockchip/rk3566/powkiddy-x55 rockchip/rk3566/miyoo-flip" \
 										 			if BR2_PACKAGE_BATOCERA_TARGET_RK3568
 	default "rockchip/rk3588/orangepi-5-pro rockchip/rk3588/bananapi-m7 rockchip/rk3588/gameforce-ace rockchip/rk3588/rock-5c rockchip/rk3588/rock-5b rockchip/rk3588/rock-5a rockchip/rk3588/quartzpro64 rockchip/rk3588/orangepi-5 rockchip/rk3588/orangepi-5b rockchip/rk3588/orangepi-5-plus rockchip/rk3588/indiedroid-nova rockchip/rk3588/mekotronics-r58 rockchip/rk3588/khadas-edge-2 rockchip/rk3588/firefly-station-m3" \
 													if BR2_PACKAGE_BATOCERA_TARGET_RK3588

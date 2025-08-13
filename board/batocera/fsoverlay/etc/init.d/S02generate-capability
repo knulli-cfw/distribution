@@ -22,15 +22,15 @@ fi
 # Define board capabilities
 declare -A BOARD_CAPABILITIES
 BOARD_CAPABILITIES[rgb]="rg40xx-h rg40xx-v rg-cubexx trimui-smart-pro trimui-brick"
-BOARD_CAPABILITIES[hdmi]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx"
+BOARD_CAPABILITIES[hdmi]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx powkiddy-x55 rg-arc-s"
 BOARD_CAPABILITIES[lid]="rg35xx-sp rg34xx-sp powkiddy-v90s"
-BOARD_CAPABILITIES[wifi]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
-BOARD_CAPABILITIES[bluetooth]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
-BOARD_CAPABILITIES[analogstick]="rg35xx-h rg40xx-h rg40xx-v rg-cubexx trimui-smart-pro rg34xx-sp"
+BOARD_CAPABILITIES[wifi]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick powkiddy-x55 rg-arc-s"
+BOARD_CAPABILITIES[bluetooth]="rg35xx-plus rg35xx-h rg35xx-sp rg34xx-sp rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick powkiddy-x55 rg-arc-s"
+BOARD_CAPABILITIES[analogstick]="rg35xx-h rg40xx-h rg40xx-v rg-cubexx trimui-smart-pro rg34xx-sp powkiddy-v20 powkiddy-x55 rg-arc-s"
 BOARD_CAPABILITIES[rumble]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick"
 BOARD_CAPABILITIES[adb]="rg35xx-plus rg35xx-h rg35xx-2024 rg35xx-sp rg34xx-sp rg28xx rg40xx-h rg40xx-v rg-cubexx rg34xx trimui-smart-pro trimui-brick miyoo-flip \
-rg-arc-s powkiddy-rgb30 powkiddy_a13 ps5000 ps7000 powkiddy-v90s"
-BOARD_CAPABILITIES[bezelproject]="trimui-smart-pro"
+rg-arc-s powkiddy-rgb30 powkiddy_a13 ps5000 ps7000 powkiddy-v90s powkiddy-v20 powkiddy-x55 rg-arc-s"
+BOARD_CAPABILITIES[bezelproject]="trimui-smart-pro powkiddy-x55"
 BOARD_CAPABILITIES[toggleswitch]="trimui-smart-pro trimui-brick"
 
 # Parse associative array for matching capabilities

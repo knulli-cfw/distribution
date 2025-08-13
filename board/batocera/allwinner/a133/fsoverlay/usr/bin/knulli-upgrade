@@ -356,7 +356,7 @@ class KnulliUpgrader:
             print(f"ERROR: Failed to update {partition_name}: {e}")
             return False
     
-    def update_signature_file(self, new_version, target_md5):
+    def update_signature_file(self, new_version=None, rootfs_target_md5=None, partition_updates=None):
         """Update firmware signature file"""
         print("Updating firmware signature file...")
         
@@ -372,13 +372,30 @@ class KnulliUpgrader:
             # Create new signature file content
             current_partitions = self.parse_partitions(self.living_sig) if self.living_sig.exists() else {}
             
-            # Update rootfs MD5
-            current_partitions["rootfs.squashfs_md5"] = target_md5
+            # Update rootfs MD5 if provided
+            if rootfs_target_md5:
+                current_partitions["rootfs.squashfs_md5"] = rootfs_target_md5
+            
+            # Update partition MD5s if provided
+            if partition_updates:
+                for partition_update in partition_updates:
+                    partition_name = partition_update["partition"]
+                    target_md5 = partition_update["target_md5"]
+                    # Update the MD5 for this partition in the signature file
+                    current_partitions[f"{partition_name}_md5"] = target_md5
+                    print(f"  Updated {partition_name}_md5 to {target_md5}")
+            
+            # Determine version to use
+            version_to_use = new_version
+            if not version_to_use and self.living_sig.exists():
+                version_to_use = self.get_ini_value(self.living_sig, "metadata", "version") or "unknown"
+            if not version_to_use:
+                version_to_use = "unknown"
             
             # Write new signature file
             with open(self.living_sig, 'w') as f:
                 f.write("[metadata]\n")
-                f.write(f"version={new_version}\n")
+                f.write(f"version={version_to_use}\n")
                 f.write(f"board={self.board_name}\n")
                 f.write(f"build_date={datetime.now().isoformat()}\n")
                 f.write("\n[partitions]\n")
@@ -441,14 +458,33 @@ class KnulliUpgrader:
                 print("ERROR: Failed to apply partition updates")
                 return 1
         
-        # Update signature file
-        if rootfs_update:
+        # Update signature file with both rootfs and partition updates
+        signature_updated = False
+        if rootfs_update and partition_updates:
+            # Both rootfs and partition updates
             if not self.update_signature_file(
-                rootfs_update["version"], 
-                rootfs_update["target_md5"]
+                new_version=rootfs_update["version"],
+                rootfs_target_md5=rootfs_update["target_md5"],
+                partition_updates=partition_updates
             ):
                 print("ERROR: Failed to update signature file")
                 return 1
+            signature_updated = True
+        elif rootfs_update:
+            # Only rootfs update
+            if not self.update_signature_file(
+                new_version=rootfs_update["version"], 
+                rootfs_target_md5=rootfs_update["target_md5"]
+            ):
+                print("ERROR: Failed to update signature file")
+                return 1
+            signature_updated = True
+        elif partition_updates:
+            # Only partition updates
+            if not self.update_signature_file(partition_updates=partition_updates):
+                print("ERROR: Failed to update signature file")
+                return 1
+            signature_updated = True
         
         print()
         print("Update completed successfully!")
@@ -496,4 +532,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
