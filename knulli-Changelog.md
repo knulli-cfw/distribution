@@ -14,7 +14,7 @@
     - Added [soft reset function hotkey shortcut](https://knulli.org/play/hotkey-shortcuts): Added new soft reset feature where holding hotkey and double tapping start on the device will force exit any running application and restart ES
     - Added disk check utility: Added a built in function to check sd card file system consistency
     - Added [factory reset script functionality](https://knulli.org/configure/reset-to-factory-settings): This allows to reset the systems folder when you update. You can do this if you have updated and some things are not working as expected. This option creates a backup of your current system folder in case you want to recover some data. It also adopts your previous PortMaster installation.
-    - Introduced [Samba (SMB, Windows Network) as a dedicated service](https://knulli.org/play/add-games/network-transfer): Samba is not an optional service, you can enable it in ``Settings -> System Settings -> SAMBA``
+    - Introduced [Samba (SMB, Windows Network) as a dedicated service](https://knulli.org/play/add-games/network-transfer): Samba is now an optional service, you can enable it in ``Settings -> System Settings -> SAMBA``
     - Added device statistics gathering support: This helps us understand the adoption rate of the different builds as well as the overall interest on each particular model. Of course you can disable telemetry data if you desire to do so (Settings -> Device Settings -> Disable Telemetry)
   - Emulation features
     - bezel support for several standalone emulators on H700 devices
