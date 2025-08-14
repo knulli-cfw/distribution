@@ -10,8 +10,6 @@ default:
 nds:
   emulator: advanced_drastic
   core:     advanced_drastic
-  options:
-    hud_support: false
 fmtowns:
   emulator: libretro
   core:     mame
@@ -21,8 +19,6 @@ flash:
 atomiswave:
   emulator: libretro
   core:     flycastvl
-  options:
-    hud_support: false
 dreamcast:
   emulator: libretro
   core:     flycastvl
@@ -31,8 +27,6 @@ dreamcast:
 naomi:
   emulator: libretro
   core:     flycastvl
-  options:
-    hud_support: false
 n64:
   emulator: libretro
   core:     parallel_n64
@@ -46,8 +40,3 @@ n64dd:
 cdi:
   emulator: libretro
   core:     same_cdi
-  psp:
-    emulator: ppsspp
-    core: ppsspp
-    options:
-      hud_support: false
