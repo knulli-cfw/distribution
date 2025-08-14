@@ -1,11 +1,11 @@
-# Knulli - Gladiator II - (2025XXXX)
+# Knulli - Gladiator II - (20250813)
 
 ## ChangeLog
 
 ### ADDED ###
 - Devices support
-    - support for RG34XX SP
-    - support for RG35XX Pro
+    - Added support for Anbernic RG34XX SP
+    - Added support for Anbernic RG35XX Pro
     - Added preliminary support for the Powkiddy V90S and V20
 - OS features
     - Introduced [OTA (Over-The-Air) update support](https://knulli.org/play/update): Knulli now supports OTA updates, these update not only the root file system, but the internal partitions, so changes like kernel updates are being taken care of. Some important details about OTA:
