@@ -30,13 +30,6 @@ naomi:
 n64:
   emulator: libretro
   core:     parallel_n64
-  options:
-    hud_support: false
-n64dd:
-  emulator: libretro
-  core:     parallel_n64
-  options:
-    hud_support: false
 cdi:
   emulator: libretro
   core:     same_cdi
