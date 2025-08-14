@@ -1,3 +1,79 @@
+# Knulli - Gladiator II - (20250813)
+
+## ChangeLog
+
+### ADDED ###
+- Devices support
+    - Added support for Anbernic RG34XX SP
+    - Added support for Anbernic RG35XX Pro
+    - Added preliminary support for the Powkiddy V90S and V20
+- OS features
+    - Introduced [OTA (Over-The-Air) update support](https://knulli.org/play/update): Knulli now supports OTA updates, these update not only the root file system, but the internal partitions, so changes like kernel updates are being taken care of. Some important details about OTA:
+      - Stable builds will get OTA updates for fixes but no major changes. Expect a 3-4 month update cycle
+      - Alpha builds will get frequent OTA updates (limited to [Knulli supporters](https://knulli.org/community/contribute/))
+    - Added [soft reset function hotkey shortcut](https://knulli.org/play/hotkey-shortcuts): Added new soft reset feature where holding hotkey and double tapping start on the device will force exit any running application and restart ES
+    - Added disk check utility: Added a built in function to check sd card file system consistency
+    - Added [factory reset script functionality](https://knulli.org/configure/reset-to-factory-settings): This allows to reset the systems folder when you update. You can do this if you have updated and some things are not working as expected. This option creates a backup of your current system folder in case you want to recover some data. It also adopts your previous PortMaster installation.
+    - Introduced [Samba (SMB, Windows Network) as a dedicated service](https://knulli.org/play/add-games/network-transfer): Samba is now an optional service, you can enable it in ``Settings -> System Settings -> SAMBA``
+    - Added device statistics gathering support: This helps us understand the adoption rate of the different builds as well as the overall interest on each particular model. Of course you can disable telemetry data if you desire to do so (Settings -> Device Settings -> Disable Telemetry)
+  - Emulation features
+    - bezel support for several standalone emulators on H700 devices
+    - introduced new *Default-Knulli-SP* bezel decoration set for GBA on 4:3 SP displays
+
+### FIXED ###
+- OS features
+    - Removed MTP (Media Transfer Protocol) support system-wide: Some preliminary alpha versions introduced MTP support. This resulted in several issues with file system corruption. It's now disabled until a better implementation is added. Users can still use SFTP, ADB, or SAMB
+    - Fixed auto-assignment for USB controllers
+    - Enhanced suspend/resume functionality across multiple devices
+    - Improved USB and Bluetooth management during suspend
+    - Improved power-off handling for various devices
+    - Updated battery management and power saving
+    - Improved lid control mechanisms
+    - Cardinal snapping fixes for RG-CubeXX, RG35XX-H, RG40XX-H, and RG40XX-V
+    - Fixed reversed L/R audio channels on A133 devices
+    - Fixed RGB achievement effects on A133 devices
+    - Fixed non-working toggle switch functionality on TrimUI Smart Pro
+    - Fixed Bluetooth being enabled after boot on A133 devices despite being disabled in settings
+    - Fixed devices not recovering from display-off mode (now brightness=0 instead)
+    - Wi-Fi connection stability improvements with better timeout handling
+    - Battery saver no longer suspends during media playback
+    - Audio mute toggle now persists when changing outputs or entering menus
+    - Resize script corrected for ExFAT conversion and partition order
+- Emulation features
+    - Fixed crashes in standalone emulators when bezels are enabled on A133 (TrimUI Brick, Smart Pro, etc.)
+    - Fixed PPSSPP standalone `glCopyImage` segfault on A133/PowerVR GE8300 that resulted in emulation issues in the TrimUI Smart Pro and Brick
+    - Workaround for Flycast/vl/xtreme core compatibility (Dreamcast, NAOMI, Atomiswave, NAOMI2) on A133 devices
+    - Changed default Korean font
+    - Replaced JP-only font with full CJK support using WenQuanYi Micro Hei
+    - Set CJK fonts based on RetroArch user language or system locale
+    - Fixed RetroArch OSD CJK font display issues
+    - Fixed Advanced Drastic emulator config path issues
+
+### CHANGED / IMPROVED ###
+- OS features
+    - Enhanced suspend/resume functionality and power management
+    - Improved battery saver behavior
+    - Enhanced brightness control and soft reset behavior
+    - Updated Bluetooth service handling
+    - Improved EmulationStation audio wait
+    - Multi-resolution bezel sets now use consistent aspect-ratio naming patterns
+    - Updated Art-Book-Next theme
+    - Updated ES-Knulli theme
+    - Filtering Knulli-compatible themes
+    - Auto volume attenuation when using headphones on A133 devices
+    - Added MPV support for M3U, MP3, FLAC
+    - MPV now skips applying bezels/HUD overlays
+    - Improved audio handling across devices
+    - NetPlay hotspot detection via `has_ap_mode`
+    - Auto-detection of Wi-Fi interface for ad-hoc NetPlay
+    - Faster game launch
+    - Unified USB mode control into single init script (ADB, MTP, off)
+    - ConnMan startup delay and extended Wi-Fi timeouts
+    - Removed debug output from init scripts
+    - Pico-8 installer update to auto-remove previous installation before reinstall
+- Emulation features
+    - Adjusted rewind granularity for better performance
+
 # Knulli - Gladiator - (20250505)
 
 ## ChangeLog
@@ -23,7 +99,7 @@
     - Automatically switches between Bluetooth audio and built-in speaker output when devices connect/disconnect
     - Added date and time display to the EmulationStation screensaver
     - Added Korean input support to the EmulationStation on-screen popup keyboard
-    - Applied 60 Hz patches for RG35XX SP, RG34XX, and RG CubeXX (thank you, [@TheGammaSqueeze](https://github.com/TheGammaSqueeze/))
+    - Adjusted refresh rate to 60 Hz on RG35XX SP, RG34XX, RG34XX SP, and RG CubeXX (thank you, [@TheGammaSqueeze](https://github.com/TheGammaSqueeze/))
     - Added single rainbow RGB mode to TrimUI Brick and Smart Pro
     - Added MPV video player
         - Disabled power saving while MPV is playing videos
