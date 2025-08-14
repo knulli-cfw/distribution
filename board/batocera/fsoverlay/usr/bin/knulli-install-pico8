@@ -91,13 +91,6 @@ echo "Removed temporary installation files."
 rm $PICO_8_ZIPFILE
 echo "Removed Pico8 zip file."
 
-batocera-settings-set "pico8.core" "pico8_official"
-batocera-settings-set "pico8.emulator" "lexaloffle"
-# Also disable bezels for now to avoid issues on A133 devices
-batocera-settings-set "pico8.bezel" "none"
-batocera-settings-set "pico8.hud" "none"
-echo "Set up Pico-8 as default emulator for Pico-8 games."
-
 sleep 2
 
 curl http://localhost:1234/reloadgames
