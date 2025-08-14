@@ -64,23 +64,22 @@ class Advanced_DrasticGenerator(Generator):
                 for filename in os.listdir(src_dir):
                     shutil.move(os.path.join(src_dir, filename), os.path.join(dst_dir, filename))
 
-        # Check for duplicate bind mounts
-        def is_bind_mounted(mount_point):
-            try:
-                output = subprocess.check_output(
-                    ["findmnt", "--noheadings", "--target", str(mount_point)],
-                    text=True
-                )
-                return str(mount_point) in output
-            except subprocess.CalledProcessError:
-                return False
+        # Check if already mounted
+        def is_mounted(mount_point: str) -> bool:
+            path = os.path.realpath(mount_point)
+            with open("/proc/self/mountinfo", "r") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 5 and os.path.realpath(parts[4]) == path:
+                        return True
+            return False
 
         # Set bind mounts for exfat. No symlinks
-        if not is_bind_mounted(saves_target):
+        if not is_mounted(saves_target):
             move_data(saves_target, advanced_drastic_saves)
             subprocess.call(["mount", "--bind", advanced_drastic_saves, saves_target])
 
-        if not is_bind_mounted(states_target):
+        if not is_mounted(states_target):
             move_data(states_target, advanced_drastic_states)
             subprocess.call(["mount", "--bind", advanced_drastic_states, states_target])
 
