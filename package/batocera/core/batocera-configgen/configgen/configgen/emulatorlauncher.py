@@ -34,7 +34,7 @@ from .batoceraPaths import SAVES, SYSTEM_SCRIPTS, USER_SCRIPTS
 from .controller import Controller
 from .Emulator import Emulator
 from .generators import get_generator
-from .utils import bezels as bezelsUtil, videoMode
+from .utils import bezels as bezelsUtil, videoMode, device
 from .utils.logger import setup_logging
 from .utils.squashfs import squashfs_rom
 
@@ -207,7 +207,7 @@ def start_rom(args: argparse.Namespace, maxnbplayers: int, rom: str, romConfigur
 
             cmd = generator.generate(system, rom, player_controllers, metadata, guns, wheels, gameResolution)
 
-            if system.isOptSet('hud_support') and system.getOptBoolean('hud_support'):
+            if device.hasBoardCapability('hud') and system.isOptSet('hud_support') and system.getOptBoolean('hud_support'):
                 hud_bezel = getHudBezel(system, generator, rom, gameResolution, controllers.gunsBordersSizeName(guns, system.config), controllers.gunsBorderRatioType(guns, system.config))
                 if (system.isOptSet('hud') and system.config['hud'] != "" and system.config['hud'] != "none") or hud_bezel is not None:
                     gameinfos = extractGameInfosFromXml(args.gameinfoxml)
