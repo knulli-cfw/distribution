@@ -2,11 +2,11 @@
 
 case "$1" in
     headphone)
-        amixer -c 0 sset Headphone 4
+        amixer -c 0 sset Headphone 3
         amixer -c 0 sset LINEOUT off
         ;;
     speaker)
-        amixer -c 0 sset Headphone 1
+        amixer -c 0 sset Headphone 0
         amixer -c 0 sset LINEOUT on
         ;;
     *)
