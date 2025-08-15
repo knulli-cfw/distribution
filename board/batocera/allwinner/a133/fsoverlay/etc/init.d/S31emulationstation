@@ -14,23 +14,6 @@ case "$1" in
                 exit 1
             fi
 
-            # Wait for audio link – A133 quirk
-            i=0
-            while [ $i -lt 100 ]; do
-                DEFAULT_SINK=$(pactl info | grep "Default Sink" | cut -d: -f2 | xargs)
-                if [ -n "$DEFAULT_SINK" ]; then
-                    if pactl list sinks short | awk '{print $2}' | grep -q "^$DEFAULT_SINK$"; then
-                        # Confirm volume can be read
-                        if pactl get-sink-volume "$DEFAULT_SINK" >/dev/null 2>&1; then
-                            break
-                        fi
-                    fi
-                fi
-
-                i=$((i + 1))
-                sleep 0.1
-            done
-
             emulationstation-standalone &
         fi
         ;;

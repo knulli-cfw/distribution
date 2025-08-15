@@ -11,17 +11,18 @@ BOARD=$(cat /boot/boot/batocera.board)
 start_pipewire() {
     printf "Starting pipewire: "
     start-stop-daemon -S -b -q -m -p /var/run/pipewire.pid --exec /usr/bin/pipewire
-    msg=OK
+    echo "OK"
 
-    #Wait till sinks are listed, this means PW is working
-    until pactl list sinks-raw | grep -qo sink=
-    do
-        sleep 0.1
-        N=$((N+1))
-        test $N -gt 50 && { msg=KO; break; }
+    PULSE_SOCK=/var/run/pulse/native
+
+    printf "Waiting for pulse sink: "
+    N=0
+    until pactl -s "unix:$PULSE_SOCK" list sinks short 2>/dev/null | grep -q .; do
+    sleep 0.1
+    N=$((N+1))
+    [ $N -gt 25 ] && { echo "KO"; break; }
     done
-
-    echo "$msg"
+    echo "OK"
 }
 
 stop_pipewire() {
@@ -33,6 +34,9 @@ stop_pipewire() {
 
 case "$1" in
     start)
+        if [ "$BOARD" = "powkiddy-v90s" ] || [ "$BOARD" = "powkiddy-v20" ]; then
+            alsactl init
+        fi
         start_pipewire
     ;;
     stop)
