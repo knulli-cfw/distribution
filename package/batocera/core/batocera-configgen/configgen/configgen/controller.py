@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-import subprocess
 from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass, field, replace
 from pathlib import Path
@@ -187,28 +186,11 @@ class Controller:
     def load_for_players(cls, max_players: int, args: Namespace, /) -> ControllerDict:
         all_controllers = cls.load_all()
 
-        controller_list = []
-        for player_number in range(1, max_players + 1):
-            controller = cls.find_best_controller_config(all_controllers, args, player_number)
-            if controller:
-                controller_list.append(controller)
-
-        # Always reorder controllers by ascending event number (this fixes issue with usb controllers getting priority)
-        controller_list.sort(key=lambda c: int(c.device_path.rsplit("event", 1)[-1]))
-
-        p1_handheld = subprocess.getoutput("batocera-settings-get system.input.p1_handheld").strip()
-
-        # If there's more than one controller safe to assume the first(lowest event number) is internal and remove it unless p1_handheld is enabled
-        if len(controller_list) > 1 and p1_handheld != "1":
-            controller_list.pop(0)
-
-        # Reassign player numbers based on new order
-        for i, ctrl in enumerate(controller_list[:max_players], start=1):
-            ctrl.player_number = i
-
         return {
-                ctrl.player_number: ctrl for ctrl in controller_list[:max_players]
-            }
+            controller.player_number: controller
+            for player_number in range(1, max_players + 1)
+            if (controller := cls.find_best_controller_config(all_controllers, args, player_number)) is not None
+        }
 
     @classmethod
     def find_best_controller_config(
