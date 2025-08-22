@@ -104,7 +104,6 @@ class LexaloffleGenerator(Generator):
         config_settings["mix_buffer_size"] = "1024" # Needed otherwise unstable // usually 1024. Try 2048 if you get choppy sound
         config_settings["use_wget"] = "0" # (Linux) 1 to use wget for downloads instead of libcurl (must be installed)
         config_settings["joystick_index"] = "0" # Specify which player index joystick control begins at (0..7)
-        config_settings["merge_joysticks"] = "0" # Treat the first n controllers as if they were a single merged controller
         config_settings["button_keys"] = "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" # Custom keyboard scancodes for buttons. player0 0..6, player1 0..5, menu_button, player2 0..5, player3 0..5
         config_settings["live_notes"] = "0" # Play notes as they are plotted in frequency mode
         config_settings["cursor_snap"] = "0" # if 1: when using keyboard cursor, snap to closest pixel / map cel
@@ -126,6 +125,13 @@ class LexaloffleGenerator(Generator):
         config_settings["transform_screen"] = "0" # 129 flip horizontally // 130 flip vertically // 133 rotate CW 90 degrees // 134 rotate CW 180 degrees // 135 rotate CW 270 degrees
         config_settings["gfx_grid_lines"] = "0" # 0 off  > 1: colour to draw pixel grid in the gfx editor at zoom:8 and zoom:4 (16 for black)
         config_settings["capture_timestamps"] = "0" # 0 sequential (foo_0.png, foo_1.png)    1 timestamp (foo_20240115_120823.png)
+
+        # Treat the first n controllers as if they were a single merged controller
+        p1_handheld = subprocess.getoutput("batocera-settings-get system.input.p1_handheld").strip()
+        if p1_handheld == "1":
+            config_settings["merge_joysticks"] = "0"
+        else:
+            config_settings["merge_joysticks"] = "2"
 
         # Display FPS
         if system.isOptSet("pico8_showfps") and system.config['pico8_showfps'] == '1':
