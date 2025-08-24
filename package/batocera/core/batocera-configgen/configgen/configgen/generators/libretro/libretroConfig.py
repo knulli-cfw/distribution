@@ -4,6 +4,7 @@ import os
 import json
 import logging
 import subprocess
+import socket
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -82,25 +83,19 @@ systemNetplayModes = {'host', 'client', 'spectator'}
 # Cores that require .slang shaders (even on OpenGL, not only Vulkan)
 coreForceSlangShaders = { 'mupen64plus-next' }
 
-def connected_to_internet() -> bool:
-    # Try 1.1.1.1 first
-    cmd = ["timeout", "1", "ping", "-c", "1", "-t", "255", "1.1.1.1"]
-    process = subprocess.Popen(cmd)
-    process.wait()
-    if process.returncode == 0:
-        eslog.debug("Connected to the internet")
-        return True
-    else:
-        # Try 8.8.8.8 if 1.1.1.1 fails
-        cmd = ["timeout", "1", "ping", "-c", "1", "-t", "255", "8.8.8.8"]
-        process = subprocess.Popen(cmd)
-        process.wait()
-        if process.returncode == 0:
-            eslog.debug("Connected to the internet")
+def connected_to_internet(timeout: float = 1.0) -> bool:
+    """
+    Consider online if we can open a TCP socket to RetroAchievements (HTTPS 443).
+    """
+    host, port = "retroachievements.org", 443
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            eslog.debug(f"Connected to {host}:{port}")
             return True
-        else:
-            eslog.error("Not connected to the internet")
-            return False
+    except Exception as e:
+        eslog.debug(f"Connectivity check to {host}:{port} failed: {e}")
+        eslog.error("Not connected to the internet (RetroAchievements unreachable)")
+        return False
 
 def writeLibretroConfig(generator: Generator, retroconfig: UnixSettings, system: Emulator, controllers: ControllerMapping, metadata: Mapping[str, str], guns: GunMapping, wheels: DeviceInfoMapping, rom: Path, bezel: str | None, shaderBezel: bool, gameResolution: Resolution, gfxBackend: str) -> None:
     writeLibretroConfigToFile(retroconfig, createLibretroConfig(generator, system, controllers, metadata, guns, wheels, rom, bezel, shaderBezel, gameResolution, gfxBackend))
