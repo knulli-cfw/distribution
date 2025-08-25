@@ -19,8 +19,8 @@ eslog = logging.getLogger(__name__)
 
 PICO8_BIN_PATH: Final = BIOS / "pico-8" / "pico8"
 PICO8_ROOT_PATH: Final = ROMS / "pico8"
-SPLORE_ROMS_PATH: Final = ROMS / "pico8" / "splore"
-SPLORE_PATH: Final = HOME / ".lexaloffle" / "pico-8" / "bbs" / "carts"
+#SPLORE_ROMS_PATH: Final = ROMS / "pico8" / "splore"
+#SPLORE_PATH: Final = HOME / ".lexaloffle" / "pico-8" / "bbs" / "carts"
 PICO8_CONTROLLERS: Final = HOME / ".lexaloffle" / "pico-8" / "sdl_controllers.txt"
 PICO8_CONFIG_PATH=HOME / ".lexaloffle" / "pico-8" / "config.txt"
 PICO8_SAVES_PATH: Final = SAVES / "pico8"
@@ -57,30 +57,6 @@ class LexaloffleGenerator(Generator):
         if not os.access(BIN_PATH, os.X_OK):
             eslog.error(f"File {BIN_PATH} is not set as executable")
             return -1
-
-        os.makedirs(SPLORE_ROMS_PATH, exist_ok=True)
-        os.makedirs(SPLORE_PATH, exist_ok=True)
-
-        # Moves original files before binding
-        def move_data(src_dir, dst_dir):
-            if os.path.exists(src_dir):
-                for filename in os.listdir(src_dir):
-                    shutil.move(os.path.join(src_dir, filename), os.path.join(dst_dir, filename))
-
-        # Check if already mounted
-        def is_mounted(mount_point: str) -> bool:
-            path = os.path.realpath(mount_point)
-            with open("/proc/self/mountinfo", "r") as f:
-                for line in f:
-                    parts = line.split()
-                    if len(parts) >= 5 and os.path.realpath(parts[4]) == path:
-                        return True
-            return False
-
-        # Set bind mounts for exfat. No symlinks
-        if not is_mounted(str(SPLORE_PATH)):
-            move_data(SPLORE_PATH, SPLORE_ROMS_PATH)
-            subprocess.call(["mount", "--bind", str(SPLORE_ROMS_PATH), str(SPLORE_PATH)])
 
 
         # Initialize dictionary
