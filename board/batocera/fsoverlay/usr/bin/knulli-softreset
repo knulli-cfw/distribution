@@ -19,12 +19,22 @@ since_last_reset=$(awk -v n="$now" -v r="$last_reset" 'BEGIN { print n - r }')
 # Exit if within debounce window
 [ "$(awk -v s="$since_last_reset" -v d="$DEBOUNCE_TIME" 'BEGIN { print (s < d) }')" -eq 1 ] && exit 0
 
+check_ingame() {
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:1234/runningGame")
+    test $? != 0                 && return 0
+    test "${HTTP_STATUS}" != 201 && return 0 # in game
+    return 1  # 201 when not in game
+}
+
 # Trigger reset on valid double-press
 if [ "$count" -eq 1 ] && [ "$(awk -v e="$elapsed" -v w="$WINDOW" 'BEGIN { print (e <= w) }')" -eq 1 ]; then
     : > "$COUNTER_FILE"
     echo "$now" > "$DEBOUNCE_FILE"
-    batocera-es-swissknife --emukill
-    batocera-es-swissknife --restart
+    if check_ingame; then
+        batocera-es-swissknife --emukill
+    else
+        batocera-es-swissknife --restart
+    fi
     exit 0
 fi
 
