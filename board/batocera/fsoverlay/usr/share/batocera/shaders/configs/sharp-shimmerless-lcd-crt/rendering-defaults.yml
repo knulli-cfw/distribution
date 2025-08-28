@@ -1,0 +1,45 @@
+default:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-scanlines
+
+gamegear:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gameandwatch:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+pokemini:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gb: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gbc:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+virtualboy: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+ds:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+lynx:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gamate:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gmaster:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+supervision:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+megaduck: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gamecom:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+ngpc:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+ngp:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+wswan:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+wswanc:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gp32:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+arduboy:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+lowresnx:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+lutro:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
