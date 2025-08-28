@@ -127,12 +127,12 @@ class LexaloffleGenerator(Generator):
         else:
             config_settings["foreground_sleep_ms"] = "1"
 
-        # Number of threads to prefetch carts in splore
-        # 0 as default to only prefetch the visited carts, which will prevent many unexpected carts showing up in the pico8/splore folder
-        if system.isOptSet("max_prefetch_threads"):
-            config_settings["max_prefetch_threads"] = system.config['max_prefetch_threads']
+        # Number of threads to pre-fetch carts in splore
+        # 4 as default
+        if system.isOptSet("pico8_max_prefetch_threads"):
+            config_settings["max_prefetch_threads"] = system.config['pico8_max_prefetch_threads']
         else:
-            config_settings["max_prefetch_threads"] = "0"
+            config_settings["max_prefetch_threads"] = "4"
 
         # Write config_settings to config.txt
         self.write_config(config_settings)
