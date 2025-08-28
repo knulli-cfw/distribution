@@ -11492,6 +11492,22 @@ lexaloffle:
                     "8":            8
                     "9":            9
                     "10":           10
+            pico8_max_prefetch_threads:
+                group: ADVANCED OPTIONS
+                prompt: CART PREFETCH THREADS
+                description: How many threads to use for downloading carts in the background while in splore. 0 to turn off pre-fetching -> carts are only downloaded once they are selected
+                choices:
+                    "0 (Default)":  0
+                    "1":            1
+                    "2":            2
+                    "3":            3
+                    "4":            4
+                    "5":            5
+                    "6":            6
+                    "7":            7
+                    "8":            8
+                    "9":            9
+                    "10":           10
 
 ecwolf:
   features: [padtokeyboard]
