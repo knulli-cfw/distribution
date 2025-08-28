@@ -127,6 +127,13 @@ class LexaloffleGenerator(Generator):
         else:
             config_settings["foreground_sleep_ms"] = "1"
 
+        # Number of threads to pre-fetch carts in splore
+        # 4 as default
+        if system.isOptSet("pico8_max_prefetch_threads"):
+            config_settings["max_prefetch_threads"] = system.config['pico8_max_prefetch_threads']
+        else:
+            config_settings["max_prefetch_threads"] = "4"
+
         # Write config_settings to config.txt
         self.write_config(config_settings)
 

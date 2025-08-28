@@ -11492,6 +11492,22 @@ lexaloffle:
                     "8":            8
                     "9":            9
                     "10":           10
+            pico8_max_prefetch_threads:
+                group: ADVANCED OPTIONS
+                prompt: CART PREFETCH THREADS
+                description: Threads used for pre-fetching carts in Splore (0 = disabled, download only when selected).
+                choices:
+                    "0":            0
+                    "1":            1
+                    "2":            2
+                    "3":            3
+                    "4 (Default)":  4
+                    "5":            5
+                    "6":            6
+                    "7":            7
+                    "8":            8
+                    "9":            9
+                    "10":           10
 
 ecwolf:
   features: [padtokeyboard]
