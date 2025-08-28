@@ -20,7 +20,7 @@ class FlycastGenerator(Generator):
     def getHotkeysContext(self) -> HotkeysContext:
         return {
             "name": "flycast",
-            "keys": { 
+            "keys": {
                 "exit": "KEY_F7",
                 "menu": "KEY_TAB",
                 "fast_foward": "KEY_SPACE",
@@ -63,8 +63,8 @@ class FlycastGenerator(Generator):
                 Config.set("input", 'device' + str(controller.player_number) + '.2', "1") # Sega VMU
             # Ensure controller(s) are on seperate Ports
             port = controller.player_number-1
-            Config.set("input", f'maple_sdl_joystick_{port}', str(port))
-        
+            Config.set("input", f'maple_sdl_joystick_{controller.index}', str(port))
+
         # add the keyboard mappings for hotkeys
         flycastControllers.generateKeyboardConfig()
 
