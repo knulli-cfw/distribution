@@ -9,6 +9,8 @@ pokemini:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 gb: 
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gba: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 gbc:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 virtualboy: 
