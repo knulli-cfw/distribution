@@ -1,2 +1,63 @@
 default:
   shader: presets/rgc_glow_crt
+
+gamegear:
+  shader: handheld/lcd3x
+gameandwatch:
+  shader: none
+lcdgames:
+  shader: none  
+pokemini:
+  shader: handheld/lcd3x
+gb: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gbc:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gba:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+virtualboy: 
+  shader: handheld/lcd3x
+ds:
+  shader: handheld/lcd1x_nds
+psp:
+  shader: handheld/lcd1x_psp
+lynx:
+  shader: handheld/lcd3x
+gamate:
+  shader: handheld/lcd3x
+gmaster:
+  shader: handheld/lcd3x
+supervision:
+  shader: handheld/lcd3x
+megaduck: 
+  shader: handheld/lcd3x
+gamecom:
+  shader: handheld/lcd3x
+ngpc:
+  shader: handheld/lcd3x
+ngp:
+  shader: handheld/lcd3x
+wswan:
+  shader: handheld/lcd3x
+wswanc:
+  shader: handheld/lcd3x
+gp32:
+  shader: handheld/lcd3x
+arduboy:
+  shader: handheld/lcd3x
+lowresnx:
+  shader: handheld/lcd3x
+lutro:
+  shader: none
+pico8:
+  shader: none
+tic80:
+  shader: none
+uzebox:
+  shader: none
+vircon32:
+  shader: none
+scummvm:
+  shader: none
+zmachine:
+  shader: none
