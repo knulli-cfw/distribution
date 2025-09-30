@@ -1,0 +1,40 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          real-or-fake-hwclock
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: Set system time from RTC or fake-hwclock
+### END INIT INFO
+
+set -e
+
+FAKE_HWCLOCK_DATA="/userdata/system/fake-hwclock.data"
+
+case "$1" in
+    start)
+        if command -v hwclock >/dev/null 2>&1 && hwclock -r >/dev/null 2>&1; then
+            echo "Using hwclock to set system time..."
+            hwclock -s
+        else
+            echo "Using fake-hwclock to set system time..."
+            /usr/sbin/fake-hwclock load || true
+        fi
+        ;;
+    stop|restart|reload|force-reload)
+        if command -v hwclock >/dev/null 2>&1 && hwclock -w >/dev/null 2>&1; then
+            echo "Saving system time to hwclock..."
+            hwclock -w
+        else
+            echo "Saving system time to fake-hwclock..."
+            /usr/sbin/fake-hwclock save || true
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+        exit 1
+        ;;
+esac
+
+exit 0
