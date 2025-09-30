@@ -1,0 +1,4 @@
+config BR2_PACKAGE_REAL_OR_FAKE_HWCLOCK
+    bool "real-or-fake-hwclock"
+    help
+      Use hwclock if available, otherwise fallback to fake-hwclock for timekeeping on boot and shutdown.
