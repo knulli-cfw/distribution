@@ -43,5 +43,8 @@ arduboy:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 lowresnx:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
-lutro:
-  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+
+lcdgames: 
+  shader: none
+gameandwatch:
+  shader: none

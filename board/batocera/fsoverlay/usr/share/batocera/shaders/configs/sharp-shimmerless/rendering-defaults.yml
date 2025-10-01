@@ -1,2 +1,7 @@
 default:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless
+
+lcdgames: 
+  shader: none
+gameandwatch:
+  shader: none

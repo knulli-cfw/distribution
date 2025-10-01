@@ -1,26 +1,24 @@
-default:
-  shader: presets/rgc_glow_crt
+# based on the guide from Retro Game Corps: https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/
 
-gamegear:
-  shader: handheld/lcd3x
-gameandwatch:
-  shader: none
-lcdgames:
-  shader: none  
-pokemini:
-  shader: handheld/lcd3x
+default:
+  shader: crt/crt-blurPi-soft
+
 gb: 
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 gbc:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
 gba:
   shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
-virtualboy: 
-  shader: handheld/lcd3x
 ds:
   shader: handheld/lcd1x_nds
 psp:
   shader: handheld/lcd1x_psp
+gamegear:
+  shader: handheld/lcd3x
+pokemini:
+  shader: handheld/lcd3x
+virtualboy: 
+  shader: handheld/lcd3x
 lynx:
   shader: handheld/lcd3x
 gamate:
@@ -47,6 +45,7 @@ arduboy:
   shader: handheld/lcd3x
 lowresnx:
   shader: handheld/lcd3x
+
 lutro:
   shader: none
 pico8:
@@ -59,5 +58,7 @@ vircon32:
   shader: none
 scummvm:
   shader: none
-zmachine:
+gameandwatch:
   shader: none
+lcdgames:
+  shader: none  
