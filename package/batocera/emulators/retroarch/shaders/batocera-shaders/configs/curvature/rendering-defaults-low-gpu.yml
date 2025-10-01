@@ -40,7 +40,7 @@ neogeocd:
   shader: crt/fakelottes
 mame:
   shader: crt/fakelottes
-fba:
+fbneo:
   shader: crt/fakelottes
 naomi:
   shader: crt/fakelottes
