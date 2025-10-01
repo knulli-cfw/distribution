@@ -1,0 +1,35 @@
+{
+    "driver": "trimui_a133p",
+    "driver_extra_params": {
+        "rgb_order": [2,1,0],
+        "patchtable": [
+            [1, 2],
+            [2, 1]
+        ]
+    },
+    "leds": 23,
+    "target_fps": 30,
+    "zones": {
+        "left_stick": {
+            "type": "Ring",
+            "leds": 11,
+            "pos": [0,0],
+            "led_indexes": [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 11],
+            "input" : [0, 1]
+        },
+        "right_stick": {
+            "type": "Ring",
+            "secondary": 1,
+            "leds": 11,
+            "pos": [9,0],
+            "led_indexes": [21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 22],
+            "input" : [2, 3]
+        },
+        "logo": {
+            "type": "Led",
+            "leds": 1,
+            "pos": [5, 1],
+            "led_indexes": [0]
+        }
+    }
+}

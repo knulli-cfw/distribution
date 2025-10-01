@@ -8,7 +8,8 @@ fi
 case "$1" in
   start)
   # Code in here will only be executed on start.
-    /usr/bin/knulli-rgb-led-daemon start clear
+    #TODO cd into hh-prime-rgb directory
+    nohup python rgb_daemon.py &>/dev/null &
     ;;
   stop)
     # Code in here will only be executed on shutdown.
@@ -19,5 +20,5 @@ case "$1" in
     echo "Usage: $0 {start|stop}"
     ;;
 esac
- 
+
 exit $?
