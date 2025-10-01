@@ -40,9 +40,11 @@ neogeocd:
   shader: crt/zfast-crt
 mame:
   shader: crt/zfast-crt
-fba:
+fbneo:
   shader: crt/zfast-crt
 naomi:
+  shader: crt/zfast-crt
+naomi2:
   shader: crt/zfast-crt
 atomiswave:
   shader: crt/zfast-crt

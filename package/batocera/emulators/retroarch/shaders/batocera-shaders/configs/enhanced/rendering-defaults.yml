@@ -40,9 +40,11 @@ neogeocd:
   shader: scalehq/2xScaleHQ
 mame:
   shader: scalehq/2xScaleHQ
-fba:
+fbneo:
   shader: scalehq/2xScaleHQ
 naomi:
+  shader: scalehq/2xScaleHQ
+naomi2:
   shader: scalehq/2xScaleHQ
 atomiswave:
   shader: scalehq/2xScaleHQ
