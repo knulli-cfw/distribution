@@ -40,9 +40,11 @@ neogeocd:
   shader: crt/crt-easymode
 mame:
   shader: crt/crt-easymode
-fba:
+fbneo:
   shader: crt/crt-easymode
 naomi:
+  shader: crt/crt-easymode
+naomi2:
   shader: crt/crt-easymode
 atomiswave:
   shader: crt/crt-easymode
