@@ -1,13 +1,56 @@
 #!/bin/sh
 
+# Batocera Resolution Script - Knulli RC1 (Revised)
+# Purpose: Add context-aware rotation per output and aspect ratio correction for vertical modes.
+# This script handles hardware limitations of the Allwinner H700 (RG40XX, RG35XX)
+# to allow perfect vertical display on HDMI outputs from the System Settings menu.
+
 DISPLAY="/sys/kernel/debug/dispdbg"
 HDMI_STATE="/sys/devices/platform/soc/6000000.hdmi/extcon/hdmi/state"
+LAST_STATE_FILE="/var/run/last_hdmi_state"
 BOARD=$(cat /boot/boot/batocera.board)
+
+# Configuration keys for contextual rotation storage
+KEY_GLOBAL="display.rotate"
+KEY_HDMI="display.rotate.hdmi"
+KEY_INT="display.rotate.internal"
 
 f_usage() {
     echo "$0 listOutputs" >&2
     echo "$0 currentResolution" >&2
     echo "$0 setOutput" >&2
+}
+
+# Sync UI button with active output (Contextual Rotation Persistence)
+sync_rotation_per_output() {
+    STATE=$(cat "$HDMI_STATE")
+    [ -f "$LAST_STATE_FILE" ] && LAST_STATE=$(cat "$LAST_STATE_FILE") || LAST_STATE="none"
+    
+    UI_ROT=$(batocera-settings-get $KEY_GLOBAL)
+    [ -z "$UI_ROT" ] && UI_ROT=0
+    
+    # Check if HDMI was just plugged/unplugged
+    if [ "$STATE" != "$LAST_STATE" ]; then
+        if [ "$STATE" = "HDMI=1" ]; then
+            SAVED_HDMI=$(batocera-settings-get $KEY_HDMI)
+            [ -n "$SAVED_HDMI" ] && [ "$SAVED_HDMI" != "$UI_ROT" ] && batocera-settings-set $KEY_GLOBAL "$SAVED_HDMI"
+        else
+            SAVED_INT=$(batocera-settings-get $KEY_INT)
+            [ -n "$SAVED_INT" ] && [ "$SAVED_INT" != "$UI_ROT" ] && batocera-settings-set $KEY_GLOBAL "$SAVED_INT"
+        fi
+        echo "$STATE" > "$LAST_STATE_FILE"
+    else
+        # Update specific config key if user changed the setting manually in the UI
+        [ "$STATE" = "HDMI=1" ] && batocera-settings-set $KEY_HDMI "$UI_ROT" || batocera-settings-set $KEY_INT "$UI_ROT"
+    fi
+}
+
+# Retrieve the rotation value effective for the current display context
+get_effective_rotation() {
+    STATE=$(cat "$HDMI_STATE")
+    [ "$STATE" = "HDMI=1" ] && ROT=$(batocera-settings-get $KEY_HDMI) || ROT=$(batocera-settings-get $KEY_INT)
+    [ -z "$ROT" ] && ROT=$(batocera-settings-get $KEY_GLOBAL)
+    echo "${ROT:-0}"
 }
 
 if [ $# -eq 0 ]; then
@@ -67,7 +110,6 @@ set_output() {
 }
 
 ACTION=$1
-
 case "${ACTION}" in
     "listOutputs")
         echo "hdmi-1080p"
@@ -77,6 +119,7 @@ case "${ACTION}" in
     "listModes")
         ;;
     "setOutput")
+        sync_rotation_per_output
         STATE=$(cat "$HDMI_STATE")
         if [ "$STATE" = "HDMI=1" ]; then
             set_output hdmi
@@ -85,10 +128,27 @@ case "${ACTION}" in
         fi
         ;;
     "currentResolution")
-        if [ "$BOARD" = "rg28xx" ]; then
-            fbset | grep "geometry" | awk '{print $3"x"$2}'
+        ROT=$(get_effective_rotation)
+        STATE=$(cat "$HDMI_STATE")
+        
+        # Aspect Ratio (AR) Correction for Portrait modes (90/270 degrees).
+        # We only apply this to rotation 1 and 3 because rotation 2 (180 degrees)
+        # remains horizontal and doesn't require swapping dimensions to maintain correct AR.
+        if [ "$ROT" = "1" ] || [ "$ROT" = "3" ]; then
+            if [ "$STATE" = "HDMI=1" ]; then
+                # Standard 16:9 HDMI output mapped to Portrait
+                echo "720x1280"
+            else
+                # Internal panels (RG28XX is natively portrait)
+                [ "$BOARD" = "rg28xx" ] && echo "640x480" || echo "480x640"
+            fi
         else
-            fbset | grep "geometry" | awk '{print $2"x"$3}'
+            # Default behavior for non-vertical modes
+            if [ "$BOARD" = "rg28xx" ]; then
+                fbset | grep "geometry" | awk '{print $3"x"$2}'
+            else
+                fbset | grep "geometry" | awk '{print $2"x"$3}'
+            fi
         fi
         ;;
     "currentOutput")
@@ -101,6 +161,9 @@ case "${ACTION}" in
         exit 1
         ;;
     "supportSystemRotation")
+        # Returning 1 forces EmulationStation to handle rotation via software (--screenrotate).
+        # This is necessary because H700 hardware rotation (rotset) doesn't play well 
+        # with HDMI HDMI pixel buffers, causing image stretching.
         exit 1
         ;;
     *)
@@ -109,5 +172,4 @@ case "${ACTION}" in
         exit 1
         ;;
 esac
-
 exit 0
