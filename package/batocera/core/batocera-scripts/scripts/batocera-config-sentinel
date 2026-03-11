@@ -1,0 +1,54 @@
+#!/bin/sh
+# -----------------------------------------------------------------------------
+# batocera-config-sentinel
+# Ensures batocera.conf integrity and provides automatic disaster recovery.
+# -----------------------------------------------------------------------------
+
+CONF_FILE="/userdata/system/batocera.conf"
+BACKUP_FILE="/userdata/system/batocera.conf.lkg"
+LOG_FILE="/userdata/system/logs/config-sentinel.log"
+
+mkdir -p "$(dirname "$LOG_FILE")"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+}
+
+validate_conf() {
+    # Check if file exists and is not empty
+    if [ ! -s "$CONF_FILE" ]; then
+        return 1
+    fi
+    
+    # Check for basic key-value structure (at least one valid entry)
+    if ! grep -q "^[^#]*=" "$CONF_FILE"; then
+        return 1
+    fi
+    
+    return 0
+}
+
+case "$1" in
+    check)
+        if validate_conf; then
+            # Current config is good, update the Last Known Good backup
+            cp "$CONF_FILE" "$BACKUP_FILE"
+            log "Config validated. Shadow backup updated."
+        else
+            log "WARNING: batocera.conf is corrupted or empty!"
+            if [ -s "$BACKUP_FILE" ]; then
+                log "Disaster Recovery: Restoring from Last Known Good backup..."
+                cp "$BACKUP_FILE" "$CONF_FILE"
+                log "Restore successful."
+            else
+                log "ERROR: No backup found. System will fallback to defaults."
+            fi
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {check}"
+        exit 1
+        ;;
+esac
+
+exit 0

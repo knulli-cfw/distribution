@@ -6,6 +6,9 @@ BOOTCONF="/boot/batocera-boot.conf"
 
 case "$1" in
 	start)
+	    # Protect and validate batocera.conf before ES starts
+	    /usr/bin/batocera-config-sentinel check
+
 	    enabled="$(/usr/bin/batocera-settings-get system.es.atstartup)"
 	    if [ "$enabled" != "0" ]; then
 		%BATOCERA_EMULATIONSTATION_CMD% %BATOCERA_EMULATIONSTATION_POSTFIX%
