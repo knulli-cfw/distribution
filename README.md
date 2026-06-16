@@ -1,3 +1,6 @@
+# Important: This an older KNULLI repository that was used up to Gladiator II release. The new repo can be found [here](https://github.com/knulli-cfw/knulli-linux)
+
+
 [![Activity](https://img.shields.io/github/commit-activity/m/knulli-cfw/distribution)](https://github.com/knulli-cfw/distribution)
 [![PR](https://img.shields.io/github/issues-pr-closed/knulli-cfw/distribution)](https://github.com/knulli-cfw/distribution)
 [![Stars](https://img.shields.io/github/stars/knulli-cfw?style=social)](https://github.com/knulli-cfw/distribution)
