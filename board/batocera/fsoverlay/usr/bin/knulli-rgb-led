@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ "$#" == 8 ]]; then
+    batocera-settings-set led.mode "$1"
+    batocera-settings-set led.brightness "$2"
+    batocera-settings-set led.colour "$3 $4 $5"
+    knulli-rgb-led-daemon
+fi
+
+if [[ "$#" == 3 ]]; then
+    batocera-settings-set led.mode "$1"
+    batocera-settings-set led.brightness "$2"
+    knulli-rgb-led-daemon
+fi
+
+if [[ "$1" == "0" ]]; then
+    batocera-settings-set led.mode "0"
+    knulli-rgb-led-daemon
+fi

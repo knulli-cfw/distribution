@@ -1,0 +1,24 @@
+{
+    "driver": "anbernic_h700",
+    "leds": 16,
+    "target_fps": 30,
+    "zones": {
+        "left_stick": {
+            "type": "Ring",
+            "leds": 8,
+            "pos": [0,0],
+            "led_indexes": [8, 15, 14, 13, 12, 11, 10, 9],
+            "led_angles": [5, 75, 117, 160, 200, 260, 295, 330],
+            "input": [0, 1]
+        },
+        "right_stick": {
+            "type": "Ring",
+            "secondary": 1,
+            "leds": 8,
+            "pos": [0,0],
+            "led_indexes": [2, 1, 0, 7, 6, 5, 4, 3],
+            "led_angles": [5, 75, 117, 160, 200, 260, 295, 330],
+            "input" : [2, 3]
+        }
+    }
+}
