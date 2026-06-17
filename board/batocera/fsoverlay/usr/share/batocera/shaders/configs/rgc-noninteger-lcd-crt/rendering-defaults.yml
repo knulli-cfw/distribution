@@ -1,0 +1,64 @@
+# based on the guide from Retro Game Corps: https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/
+
+default:
+  shader: crt/crt-blurPi-soft
+
+gb: 
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gbc:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+gba:
+  shader: sharp-shimmerless/shaders_glsl/sharp-shimmerless-grid
+ds:
+  shader: handheld/lcd1x_nds
+psp:
+  shader: handheld/lcd1x_psp
+gamegear:
+  shader: handheld/lcd3x
+pokemini:
+  shader: handheld/lcd3x
+virtualboy: 
+  shader: handheld/lcd3x
+lynx:
+  shader: handheld/lcd3x
+gamate:
+  shader: handheld/lcd3x
+gmaster:
+  shader: handheld/lcd3x
+supervision:
+  shader: handheld/lcd3x
+megaduck: 
+  shader: handheld/lcd3x
+gamecom:
+  shader: handheld/lcd3x
+ngpc:
+  shader: handheld/lcd3x
+ngp:
+  shader: handheld/lcd3x
+wswan:
+  shader: handheld/lcd3x
+wswanc:
+  shader: handheld/lcd3x
+gp32:
+  shader: handheld/lcd3x
+arduboy:
+  shader: handheld/lcd3x
+lowresnx:
+  shader: handheld/lcd3x
+
+lutro:
+  shader: none
+pico8:
+  shader: none
+tic80:
+  shader: none
+uzebox:
+  shader: none
+vircon32:
+  shader: none
+scummvm:
+  shader: none
+gameandwatch:
+  shader: none
+lcdgames:
+  shader: none  
