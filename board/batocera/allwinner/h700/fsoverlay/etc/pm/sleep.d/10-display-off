@@ -1,0 +1,13 @@
+#!/bin/bash
+case "$1" in
+    suspend|hibernate)
+        echo disable > /sys/kernel/debug/dispdbg/command
+        echo lcd0 > /sys/kernel/debug/dispdbg/name
+        echo 1 > /sys/kernel/debug/dispdbg/start
+        ;;
+    resume|thaw)
+	echo enable > /sys/kernel/debug/dispdbg/command
+        echo lcd0 > /sys/kernel/debug/dispdbg/name
+        echo 1 > /sys/kernel/debug/dispdbg/start
+        ;;
+esac
