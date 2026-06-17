@@ -1,0 +1,25 @@
+#!/bin/bash
+ 
+case "$1" in
+    start)
+        led-battery-check-daemon &
+        ;;
+    stop)
+        # Code in here will only be executed on shutdown.
+        echo -n "Shutting down led battery monitor service: "
+        killall led-battery-check-daemon
+        echo "done"
+        ;;
+    restart)
+        echo -n "Restarting led battery monitor service: "
+        killall led-battery-check-daemon
+        led-battery-check-daemon &
+        echo "done"
+        ;;
+    *)
+        # Code in here will be executed in all other conditions.
+        echo "Usage: $0 {start|stop|restart}"
+        ;;
+esac
+ 
+exit $?
