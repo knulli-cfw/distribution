@@ -2427,7 +2427,7 @@ ports:
   release:
   hardware: port
   extensions: [sh, squashfs]
-  platform: pc
+  platform: pc windows
   group: ports
   path: ports
   emulators:
