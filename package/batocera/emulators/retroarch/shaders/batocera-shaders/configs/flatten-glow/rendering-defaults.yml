@@ -40,9 +40,11 @@ neogeocd:
   shader: blurs/kawase_glow
 mame:
   shader: blurs/kawase_glow
-fba:
+fbneo:
   shader: blurs/kawase_glow
 naomi:
+  shader: blurs/kawase_glow
+naomi2:
   shader: blurs/kawase_glow
 atomiswave:
   shader: blurs/kawase_glow

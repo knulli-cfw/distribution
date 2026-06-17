@@ -40,9 +40,11 @@ neogeocd:
   shader: crt/crt-pi
 mame:
   shader: crt/crt-pi
-fba:
+fbneo:
   shader: crt/crt-pi
 naomi:
+  shader: crt/crt-pi
+naomi2:
   shader: crt/crt-pi
 atomiswave:
   shader: crt/crt-pi

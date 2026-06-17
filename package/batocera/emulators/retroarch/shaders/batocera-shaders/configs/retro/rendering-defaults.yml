@@ -40,9 +40,11 @@ neogeocd:
   shader: interpolation/sharp-bilinear-simple
 mame:
   shader: interpolation/sharp-bilinear-simple
-fba:
+fbneo:
   shader: interpolation/sharp-bilinear-simple
 naomi:
+  shader: interpolation/sharp-bilinear-simple
+naomi2:
   shader: interpolation/sharp-bilinear-simple
 atomiswave:
   shader: interpolation/sharp-bilinear-simple

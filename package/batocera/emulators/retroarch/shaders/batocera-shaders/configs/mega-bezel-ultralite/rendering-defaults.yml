@@ -46,9 +46,11 @@ neogeocd:
   shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
 mame:
   shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
-fba:
+fbneo:
   shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
 naomi:
+  shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
+naomi2:
   shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
 atomiswave:
   shader: bezel/Mega_Bezel/Presets/BATOCERA__MBZ__ULTRALITE
