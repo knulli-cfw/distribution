@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import logging
+import re
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Mapping
 from dataclasses import InitVar, dataclass, field, replace
@@ -12,6 +15,7 @@ from .input import Input, InputDict, InputMapping
 if TYPE_CHECKING:
     from argparse import Namespace
 
+eslog = logging.getLogger(__name__)
 
 """Default mapping of Batocera keys to SDL_GAMECONTROLLERCONFIG keys."""
 _DEFAULT_SDL_MAPPING: Final = {
@@ -185,11 +189,31 @@ class Controller:
     @classmethod
     def load_for_players(cls, max_players: int, args: Namespace, /) -> ControllerDict:
         all_controllers = cls.load_all()
+        
+        # Build a list of controller configurations, selecting the best match for each player slot from 1 to max_players.
+        controllers = []
+        for player_number in range(1, max_players + 1):
+            controller = cls.find_best_controller_config(all_controllers, args, player_number)
+            if controller: controllers.append(controller)
 
+        # Sort controllers by the numeric suffix in their device path (e.g. /dev/input/event0, event1, event2) to preserve connection order.
+        controllers.sort(key=lambda controller: int(match.group()) if (match := re.search(r'\d+$', controller.device_path)) else None)
+
+        # Always use the built-in handheld controller for Player 1 setting.
+        p1_handheld = subprocess.getoutput("knulli-settings-get system.input.p1_handheld").strip()
+
+        # If multiple controllers are present, assume the first controller (lowest device/event number) is the built-in handheld controller.
+        # Move it to the end of the list unless p1_handheld is enabled.
+        if len(controllers) > 1 and p1_handheld != "1": controllers.append(controllers.pop(0))
+
+        # Assign final player numbers based on the resolved controller order
+        for i, controller in enumerate(controllers[:max_players], start=1):
+            controller.player_number = i
+            eslog.info("Player {} controller - {}, {}".format(i, controller.name, controller.device_path)) 
+
+        # Return controller array with the player id as a key.
         return {
-            controller.player_number: controller
-            for player_number in range(1, max_players + 1)
-            if (controller := cls.find_best_controller_config(all_controllers, args, player_number)) is not None
+            controller.player_number: controller for controller in controllers[:max_players]
         }
 
     @classmethod
